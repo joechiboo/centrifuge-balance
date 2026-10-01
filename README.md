@@ -20,6 +20,14 @@
 
 單一檔案，無需建置。直接開啟 `index.html`，或以 GitHub Pages 發佈。
 
+## Flutter App
+
+`app/` 是手機版（Android / iOS，亦可 build web），玩法與網頁版相同，過關紀錄會存在裝置上。
+
+```sh
+cd app && flutter pub get && flutter run
+```
+
 ## 狀態
 
-網頁版 demo。之後規劃以 Flutter 製作手機 App。
+網頁版 demo 完成；Flutter App 已移植全部關卡、自由模式、提示與動畫。
