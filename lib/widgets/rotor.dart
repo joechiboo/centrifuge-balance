@@ -2,8 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart' show setEquals;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
+import '../haptics.dart';
 import '../logic/balance.dart';
 import '../state/game_state.dart';
 import '../theme/palette.dart';
@@ -82,20 +82,11 @@ class _RotorViewState extends State<RotorView> with TickerProviderStateMixin {
     if (run == RunState.spinning) {
       _angle = 0;
       _lastT = 0;
-      HapticFeedback.mediumImpact();
+      Haptics.spinUp();
       _spin.forward(from: 0);
     } else if (run == RunState.unbalanced) {
       _wobble.forward(from: 0);
-      _buzz();
-    }
-  }
-
-  /// Three sharp knocks, like a rotor hitting its housing.
-  Future<void> _buzz() async {
-    for (final ms in const [0, 130, 280]) {
-      await Future<void>.delayed(Duration(milliseconds: ms));
-      if (!mounted) return;
-      HapticFeedback.heavyImpact();
+      Haptics.knock();
     }
   }
 
@@ -120,7 +111,7 @@ class _RotorViewState extends State<RotorView> with TickerProviderStateMixin {
     if (s == AnimationStatus.completed) {
       _angle = 0;
       _speed = 0;
-      HapticFeedback.heavyImpact();
+      Haptics.stop();
       widget.state.completeSpin();
     }
   }
@@ -132,7 +123,7 @@ class _RotorViewState extends State<RotorView> with TickerProviderStateMixin {
     final hit = math.max(_holeRadius(s.n), 16.0) + 4;
     for (var i = 0; i < s.n; i++) {
       if ((p - _holeCentre(s.n, i)).distance <= hit) {
-        HapticFeedback.selectionClick();
+        Haptics.tap();
         s.toggle(i);
         return;
       }
