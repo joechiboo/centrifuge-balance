@@ -48,6 +48,62 @@ void main() {
     expect(prefs.getStringList('cfg-done'), ['0']);
   });
 
+  test('session resumes where the player left off', () async {
+    final s = GameState();
+    await s.init();
+    s.setMode(GameMode.free);
+    s.changeHoles(3); // 15 holes
+    s.toggle(0);
+    s.toggle(5);
+
+    final again = GameState();
+    await again.init();
+    expect(again.mode, GameMode.free);
+    expect(again.n, 15);
+    expect(again.placed, {0, 5});
+  });
+
+  test(
+    'resume drops tubes that no longer fit and keeps the attempt count',
+    () async {
+      SharedPreferences.setMockInitialValues({
+        'cfg-mode': 'levels',
+        'cfg-level': 3, // 12 holes, k=3, fixed {0}, broken {6}
+        'cfg-placed': ['0', '6', '4', '13'],
+        'cfg-fails': 2,
+      });
+      final s = GameState();
+      await s.init();
+      expect(s.levelIndex, 3);
+      expect(s.placed, {4});
+      expect(s.fails, 2);
+    },
+  );
+
+  test('clearing a level records the fewest launches as its best', () async {
+    final s = GameState();
+    await s.init();
+    s
+      ..toggle(0)
+      ..toggle(1);
+    s.launch(); // unbalanced
+    s.toggle(1);
+    s.toggle(3);
+    expect(s.launch(), isTrue);
+    s.completeSpin();
+    expect(s.attempts, 2);
+    expect(s.bestOf(0), 2);
+
+    // Replay and do it in one: best improves.
+    s.selectLevel(0);
+    s
+      ..toggle(0)
+      ..toggle(3);
+    s.launch();
+    s.completeSpin();
+    expect(s.bestOf(0), 1);
+  });
+
   test('only cleared levels and the current one can be revisited', () async {
     SharedPreferences.setMockInitialValues({
       'cfg-done': ['0', '1'],
