@@ -1,4 +1,8 @@
+import 'dart:async';
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../data/levels.dart';
 import '../state/game_state.dart';
@@ -58,11 +62,11 @@ class _GameScreenState extends State<GameScreen> {
                             alignment: Alignment.center,
                             children: [
                               RotorView(state: state),
-                              if (state.showClearCard) _ClearCard(state: state),
+                              if (state.showCelebration)
+                                Positioned.fill(
+                                    child: _Celebration(state: state)),
                             ],
                           ),
-                          const SizedBox(height: 14),
-                          _Lcd(state: state),
                           _Message(state: state),
                         ],
                       ),
@@ -254,51 +258,6 @@ class _Task extends StatelessWidget {
   }
 }
 
-class _Lcd extends StatelessWidget {
-  const _Lcd({required this.state});
-  final GameState state;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = Palette.of(context);
-    final bad = state.run == RunState.unbalanced;
-    final style = TextStyle(
-      color: bad ? p.lcdBad : p.lcdFg,
-      fontSize: 15,
-      fontWeight: FontWeight.w500,
-      letterSpacing: 0.6,
-      fontFeatures: const [FontFeature.tabularFigures()],
-    );
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-          color: p.lcd, borderRadius: BorderRadius.circular(10)),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(state.countLabel, style: style.copyWith(color: p.lcdFg)),
-          ValueListenableBuilder<int>(
-            valueListenable: state.rpm,
-            builder: (context, rpm, _) => Text(
-              state.run == RunState.spinning
-                  ? '${_group(rpm)} rpm'
-                  : state.stateLabel,
-              style: style,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  static String _group(int v) {
-    final s = v.toString();
-    return s.length <= 3
-        ? s
-        : '${s.substring(0, s.length - 3)},${s.substring(s.length - 3)}';
-  }
-}
-
 /// Only appears when there is something to say; collapses otherwise.
 class _Message extends StatelessWidget {
   const _Message({required this.state});
@@ -334,114 +293,163 @@ class _Message extends StatelessWidget {
   }
 }
 
-/// Pops in over the rotor after the spin stops: result plus the next step.
-class _ClearCard extends StatelessWidget {
-  const _ClearCard({required this.state});
+/// Game-style clear: a check bursts out of the hub, the level advances on
+/// its own a moment later, or at once on a tap. Free mode waits for the tap.
+class _Celebration extends StatefulWidget {
+  const _Celebration({required this.state});
   final GameState state;
+
+  @override
+  State<_Celebration> createState() => _CelebrationState();
+}
+
+class _CelebrationState extends State<_Celebration>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 900))
+    ..forward();
+  Timer? _auto;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.state.autoAdvance) {
+      _auto = Timer(const Duration(milliseconds: 1900), _go);
+    }
+  }
+
+  void _go() {
+    _auto?.cancel();
+    _auto = null;
+    widget.state.acknowledge();
+  }
+
+  @override
+  void dispose() {
+    _auto?.cancel();
+    _c.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final p = Palette.of(context);
-    final last = state.isLastLevel;
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 260),
-      curve: Curves.easeOutBack,
-      builder: (context, t, child) => Opacity(
-        opacity: t.clamp(0, 1),
-        child: Transform.scale(scale: 0.85 + 0.15 * t, child: child),
-      ),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(28, 22, 28, 22),
-        decoration: BoxDecoration(
-          color: p.panel,
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: p.line),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withValues(alpha: 0.18),
-                blurRadius: 24,
-                offset: const Offset(0, 8)),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.check_circle_rounded, color: p.ok, size: 44),
-            const SizedBox(height: 8),
-            Text(last ? '全部過關！' : '配平成功',
-                style: TextStyle(
-                    fontSize: 19, fontWeight: FontWeight.w700, color: p.ink)),
-            const SizedBox(height: 16),
-            FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: p.ok,
-                foregroundColor: p.bg,
-                minimumSize: const Size(140, 48),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
-                textStyle: const TextStyle(
-                    fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: 1),
+    final s = widget.state;
+    final last = s.isLevels && s.isLastLevel;
+    final title = last ? '全部過關！' : '配平成功';
+    final sub = s.isLevels
+        ? (last ? '點一下進入自由模式' : '點一下繼續')
+        : '${s.n} 孔放 ${s.total} 支 · 點一下繼續';
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: _go,
+      child: AnimatedBuilder(
+        animation: _c,
+        builder: (context, _) {
+          final t = _c.value;
+          final pop = Curves.easeOutBack.transform(math.min(1, t / 0.45));
+          final fade = Curves.easeOut.transform(math.min(1, t / 0.3));
+          final burst = Curves.easeOutCubic.transform(t);
+          return Stack(
+            alignment: Alignment.center,
+            children: [
+              // Dim the rotor slightly so the result reads first.
+              Container(
+                  decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: p.bg.withValues(alpha: 0.45 * fade))),
+              // Particle burst.
+              for (var i = 0; i < 12; i++)
+                Transform.translate(
+                  offset: Offset.fromDirection(
+                      i * math.pi / 6 + 0.3, 40 + 110 * burst),
+                  child: Opacity(
+                    opacity: (1 - burst).clamp(0, 1),
+                    child: Container(
+                      width: i.isEven ? 10 : 6,
+                      height: i.isEven ? 10 : 6,
+                      decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: i % 3 == 0 ? p.cap : p.ok),
+                    ),
+                  ),
+                ),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Transform.scale(
+                    scale: pop,
+                    child: Container(
+                      width: 96,
+                      height: 96,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: p.ok,
+                        boxShadow: [
+                          BoxShadow(
+                              color: p.ok.withValues(alpha: 0.45),
+                              blurRadius: 30,
+                              spreadRadius: 4),
+                        ],
+                      ),
+                      child: Icon(Icons.check_rounded, color: p.bg, size: 60),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Opacity(
+                    opacity: fade,
+                    child: Column(
+                      children: [
+                        Text(title,
+                            style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w800,
+                                color: p.ink,
+                                letterSpacing: 1)),
+                        const SizedBox(height: 4),
+                        Text(sub,
+                            style: TextStyle(fontSize: 13, color: p.muted)),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              onPressed: last
-                  ? () => state.setMode(GameMode.free)
-                  : state.nextLevel,
-              child: Text(last ? '去自由模式' : '下一關'),
-            ),
-          ],
-        ),
+            ],
+          );
+        },
       ),
     );
   }
 }
 
-/// Bottom bar: two compact tool buttons and one big primary action.
+/// Bottom bar: a round power button flanked by two small round tools.
 class _ActionBar extends StatelessWidget {
   const _ActionBar({required this.state});
   final GameState state;
 
   @override
   Widget build(BuildContext context) {
-    final p = Palette.of(context);
-    final showHint = state.isLevels;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 18),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _Tool(
+          _RoundTool(
+            icon: state.hintStage == 1
+                ? Icons.auto_awesome_rounded
+                : Icons.lightbulb_outline_rounded,
+            label: state.hintLabel,
+            enabled: state.canHint && state.hintStage < 2,
+            visible: state.isLevels,
+            onTap: state.showHint,
+          ),
+          _StartButton(state: state),
+          _RoundTool(
             icon: Icons.replay_rounded,
             label: '清空',
             enabled: state.canClear,
+            visible: true,
             onTap: state.clear,
-          ),
-          if (showHint) ...[
-            const SizedBox(width: 10),
-            _Tool(
-              icon: state.hintStage == 1
-                  ? Icons.auto_awesome_rounded
-                  : Icons.lightbulb_outline_rounded,
-              label: state.hintLabel,
-              enabled: state.canHint && state.hintStage < 2,
-              onTap: state.showHint,
-            ),
-          ],
-          const SizedBox(width: 10),
-          Expanded(
-            child: FilledButton(
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(0, 58),
-                backgroundColor: p.ink,
-                foregroundColor: p.bg,
-                disabledBackgroundColor: p.ink.withValues(alpha: 0.25),
-                disabledForegroundColor: p.bg,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16)),
-                textStyle: const TextStyle(
-                    fontSize: 18, fontWeight: FontWeight.w700, letterSpacing: 2),
-              ),
-              onPressed: state.canLaunch ? state.launch : null,
-              child: Text(state.launchLabel),
-            ),
           ),
         ],
       ),
@@ -449,45 +457,112 @@ class _ActionBar extends StatelessWidget {
   }
 }
 
-class _Tool extends StatelessWidget {
-  const _Tool({
+/// A chunky physical start key, like the one on a bench centrifuge.
+class _StartButton extends StatelessWidget {
+  const _StartButton({required this.state});
+  final GameState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Palette.of(context);
+    final on = state.canLaunch;
+    final spinning = state.run == RunState.spinning;
+    final label = spinning ? '運轉中' : '啟動';
+    return Semantics(
+      button: true,
+      enabled: on,
+      label: on ? '啟動' : state.launchLabel,
+      child: GestureDetector(
+        onTap: on
+            ? () {
+                HapticFeedback.lightImpact();
+                state.launch();
+              }
+            : null,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          width: 92,
+          height: 92,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: on ? p.ink : p.line,
+            border: Border.all(
+                color: on ? p.cap : Colors.transparent, width: 3),
+            boxShadow: on
+                ? [
+                    BoxShadow(
+                        color: p.cap.withValues(alpha: 0.45),
+                        blurRadius: 22,
+                        spreadRadius: 1),
+                  ]
+                : const [],
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.power_settings_new_rounded,
+                  size: 28, color: on ? p.bg : p.muted),
+              const SizedBox(height: 2),
+              Text(label,
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 2,
+                      color: on ? p.bg : p.muted)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RoundTool extends StatelessWidget {
+  const _RoundTool({
     required this.icon,
     required this.label,
     required this.enabled,
+    required this.visible,
     required this.onTap,
   });
   final IconData icon;
   final String label;
-  final bool enabled;
+  final bool enabled, visible;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final p = Palette.of(context);
     final fg = enabled ? p.ink : p.ink.withValues(alpha: 0.3);
-    return Material(
-      color: p.panel,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        onTap: enabled ? onTap : null,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          width: 64,
-          height: 58,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: p.line),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 22, color: fg),
-              const SizedBox(height: 2),
-              Text(label,
-                  style: TextStyle(
-                      fontSize: 11, fontWeight: FontWeight.w600, color: fg)),
-            ],
-          ),
+    return Opacity(
+      opacity: visible ? 1 : 0,
+      child: IgnorePointer(
+        ignoring: !visible,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Material(
+              color: p.panel,
+              shape: CircleBorder(side: BorderSide(color: p.line)),
+              child: InkWell(
+                onTap: enabled
+                    ? () {
+                        HapticFeedback.selectionClick();
+                        onTap();
+                      }
+                    : null,
+                customBorder: const CircleBorder(),
+                child: SizedBox(
+                    width: 56,
+                    height: 56,
+                    child: Icon(icon, size: 24, color: fg)),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(label,
+                style: TextStyle(
+                    fontSize: 12, fontWeight: FontWeight.w600, color: fg)),
+          ],
         ),
       ),
     );

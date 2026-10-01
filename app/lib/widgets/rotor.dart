@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart' show setEquals;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../logic/balance.dart';
 import '../state/game_state.dart';
@@ -11,6 +12,7 @@ import '../theme/palette.dart';
 const double _box = 400;
 const double _centre = 200;
 const double _ringR = 138;
+const double _hubR = 44;
 
 double _holeRadius(int n) => math.min(27.0, math.pi * _ringR / n * 0.78);
 
@@ -77,9 +79,20 @@ class _RotorViewState extends State<RotorView> with TickerProviderStateMixin {
     if (run == RunState.spinning) {
       _angle = 0;
       _lastT = 0;
+      HapticFeedback.mediumImpact();
       _spin.forward(from: 0);
     } else if (run == RunState.unbalanced) {
       _wobble.forward(from: 0);
+      _buzz();
+    }
+  }
+
+  /// Three sharp knocks, like a rotor hitting its housing.
+  Future<void> _buzz() async {
+    for (final ms in const [0, 130, 280]) {
+      await Future<void>.delayed(Duration(milliseconds: ms));
+      if (!mounted) return;
+      HapticFeedback.heavyImpact();
     }
   }
 
@@ -104,6 +117,7 @@ class _RotorViewState extends State<RotorView> with TickerProviderStateMixin {
     if (s == AnimationStatus.completed) {
       _angle = 0;
       _speed = 0;
+      HapticFeedback.heavyImpact();
       widget.state.completeSpin();
     }
   }
@@ -115,6 +129,7 @@ class _RotorViewState extends State<RotorView> with TickerProviderStateMixin {
     final hit = math.max(_holeRadius(s.n), 16.0) + 4;
     for (var i = 0; i < s.n; i++) {
       if ((p - _holeCentre(s.n, i)).distance <= hit) {
+        HapticFeedback.selectionClick();
         s.toggle(i);
         return;
       }
@@ -158,6 +173,7 @@ class _RotorViewState extends State<RotorView> with TickerProviderStateMixin {
                   angle: _angle,
                   speed: _speed,
                   density: 0.3 + 0.6 * s.total / s.n,
+                  hubLabel: s.hubLabel,
                   palette: palette,
                 ),
                 size: Size.square(c.maxWidth),
@@ -181,6 +197,7 @@ class _RotorPainter extends CustomPainter {
     required this.angle,
     required this.speed,
     required this.density,
+    required this.hubLabel,
     required this.palette,
   });
 
@@ -189,6 +206,7 @@ class _RotorPainter extends CustomPainter {
   final List<List<int>> guide;
   final Vec2? imbalance;
   final double angle, speed, density;
+  final String hubLabel;
   final Palette palette;
 
   @override
@@ -216,6 +234,8 @@ class _RotorPainter extends CustomPainter {
     canvas.translate(-_centre, -_centre);
     _paintRotor(canvas);
     canvas.restore();
+
+    _paintHub(canvas);
 
     // Motion blur ring fades in as the holes fade out.
     final blur = math.max(0.0, (speed - 0.45) / 0.55);
@@ -252,9 +272,6 @@ class _RotorPainter extends CustomPainter {
             colors: [p.steelHi, p.steelLo],
           ).createShader(Rect.fromCircle(center: c, radius: 184)));
     canvas.drawCircle(c, 184, ring);
-    canvas.drawCircle(c, 34, Paint()..color = p.steelLo);
-    canvas.drawCircle(c, 34, ring);
-    canvas.drawCircle(c, 12, Paint()..color = p.well);
 
     _paintGuide(canvas);
 
@@ -296,6 +313,52 @@ class _RotorPainter extends CustomPainter {
             Paint()..color = hi.withValues(alpha: holeAlpha));
       }
     }
+  }
+
+  /// Fixed hub with the live readout: tube count, or rpm while spinning.
+  void _paintHub(Canvas canvas) {
+    const c = Offset(_centre, _centre);
+    final p = palette;
+    canvas.drawCircle(c, _hubR, Paint()..color = p.steelLo);
+    canvas.drawCircle(
+        c,
+        _hubR,
+        Paint()
+          ..color = p.wellRing
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.5);
+    final spinning = speed > 0;
+    final big = spinning ? _rpmText((speed * 400).round() * 10) : hubLabel;
+    final small = spinning ? 'rpm' : '';
+    final bigStyle = TextStyle(
+      color: p.ink,
+      fontSize: spinning ? 17 : 22,
+      fontWeight: FontWeight.w700,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
+    final tp = TextPainter(
+      text: TextSpan(text: big, style: bigStyle),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    final sp = TextPainter(
+      text: TextSpan(
+          text: small,
+          style: TextStyle(
+              color: p.muted, fontSize: 10, fontWeight: FontWeight.w600)),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    final totalH = tp.height + (small.isEmpty ? 0 : sp.height - 2);
+    var y = _centre - totalH / 2;
+    tp.paint(canvas, Offset(_centre - tp.width / 2, y));
+    y += tp.height - 2;
+    if (small.isNotEmpty) sp.paint(canvas, Offset(_centre - sp.width / 2, y));
+  }
+
+  static String _rpmText(int v) {
+    final s = v.toString();
+    return s.length <= 3
+        ? s
+        : '${s.substring(0, s.length - 3)},${s.substring(s.length - 3)}';
   }
 
   void _paintGuide(Canvas canvas) {
@@ -364,6 +427,7 @@ class _RotorPainter extends CustomPainter {
       old.imbalance != imbalance ||
       old.palette != palette ||
       old.guide != guide ||
+      old.hubLabel != hubLabel ||
       !setEquals(old.fixed, fixed) ||
       !setEquals(old.broken, broken) ||
       !setEquals(old.placed, placed);

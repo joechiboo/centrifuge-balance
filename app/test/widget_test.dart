@@ -17,7 +17,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('離心機配平'), findsOneWidget);
-    expect(find.text('還差 2 支'), findsOneWidget);
+    expect(find.text('第 1 關 · 放 2 支'), findsOneWidget);
 
     final rotor = find.byType(RotorView);
     final rect = tester.getRect(rotor);
@@ -28,13 +28,18 @@ void main() {
     await tester.tapAt(rect.topLeft + Offset(200 * scale, 338 * scale));
     await tester.pump();
 
-    expect(find.text('啟動'), findsOneWidget);
     await tester.tap(find.text('啟動'));
     await tester.pump();
-    expect(find.textContaining('rpm'), findsOneWidget);
+    expect(find.text('運轉中'), findsOneWidget);
 
-    await tester.pumpAndSettle(const Duration(seconds: 5));
-    expect(find.text('運轉平穩'), findsOneWidget);
-    expect(find.text('下一關'), findsOneWidget);
+    // Spin lasts 4.2 s; the celebration is up right after.
+    await tester.pump(const Duration(milliseconds: 4300));
+    await tester.pump();
+    expect(find.text('配平成功'), findsOneWidget);
+
+    // Levels advance by themselves after the celebration.
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pumpAndSettle();
+    expect(find.text('第 2 關 · 放 3 支'), findsOneWidget);
   });
 }

@@ -89,8 +89,26 @@ class GameState extends ChangeNotifier {
   String get launchLabel =>
       isLevels && total < k ? '還差 ${k - total} 支' : '啟動';
 
-  /// Card shown over the rotor once a level's spin has coasted to a stop.
-  bool get showClearCard => isLevels && run == RunState.balanced;
+  /// Celebration over the rotor once the spin has coasted to a stop.
+  bool get showCelebration => run == RunState.balanced;
+
+  /// Levels advance by themselves after the celebration; free mode waits.
+  bool get autoAdvance => isLevels && !isLastLevel;
+
+  /// Text drawn in the rotor hub while idle: tubes placed over the goal.
+  String get hubLabel => isLevels ? '$total/$k' : '$total';
+
+  /// What a tap on the celebration does.
+  void acknowledge() {
+    if (!showCelebration) return;
+    if (isLevels) {
+      isLastLevel ? setMode(GameMode.free) : nextLevel();
+    } else {
+      _resetRun();
+      _flash('');
+      notifyListeners();
+    }
+  }
   String get hintLabel => hintStage == 1 ? '看擺法' : '提示';
   String get countLabel => isLevels ? '試管 $total / $k' : '試管 $total / $n 孔';
 
@@ -236,7 +254,7 @@ class GameState extends ChangeNotifier {
       busy = true;
       imbalance = null;
       run = RunState.spinning;
-      _flash('加速中…');
+      _flash('');
       notifyListeners();
       return true;
     }
@@ -260,7 +278,7 @@ class GameState extends ChangeNotifier {
       _flash('');
       showNext = !isLastLevel;
     } else {
-      _flash('配平成功：$n 孔放 $total 支。', MessageKind.ok);
+      _flash('');
     }
     notifyListeners();
   }
