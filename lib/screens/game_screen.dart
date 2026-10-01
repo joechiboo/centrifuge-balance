@@ -44,33 +44,51 @@ class _GameScreenState extends State<GameScreen> {
               child: Column(
                 children: [
                   Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _Header(state: state),
-                          const SizedBox(height: 14),
-                          if (state.isLevels)
-                            _Progress(state: state)
-                          else
-                            _HoleStepper(state: state),
-                          const SizedBox(height: 18),
-                          _Task(state: state),
-                          const SizedBox(height: 12),
-                          Stack(
-                            alignment: Alignment.center,
+                    child: LayoutBuilder(
+                      builder: (context, c) {
+                        // Header, progress and task take about 170 px; keep the
+                        // rotor inside whatever height is left so short or wide
+                        // screens still show the whole board.
+                        final rotorMax = (c.maxHeight - 170).clamp(
+                          200.0,
+                          520.0,
+                        );
+                        return SingleChildScrollView(
+                          padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              RotorView(state: state),
-                              if (state.showCelebration)
-                                Positioned.fill(
-                                  child: _Celebration(state: state),
+                              _Header(state: state),
+                              const SizedBox(height: 14),
+                              if (state.isLevels)
+                                _Progress(state: state)
+                              else
+                                _HoleStepper(state: state),
+                              const SizedBox(height: 18),
+                              _Task(state: state),
+                              const SizedBox(height: 12),
+                              Center(
+                                child: ConstrainedBox(
+                                  constraints: BoxConstraints(
+                                    maxWidth: rotorMax,
+                                  ),
+                                  child: Stack(
+                                    alignment: Alignment.center,
+                                    children: [
+                                      RotorView(state: state),
+                                      if (state.showCelebration)
+                                        Positioned.fill(
+                                          child: _Celebration(state: state),
+                                        ),
+                                    ],
+                                  ),
                                 ),
+                              ),
+                              _Message(state: state),
                             ],
                           ),
-                          _Message(state: state),
-                        ],
-                      ),
+                        );
+                      },
                     ),
                   ),
                   _ActionBar(state: state),

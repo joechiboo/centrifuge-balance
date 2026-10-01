@@ -1,10 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'screens/game_screen.dart';
 import 'theme/palette.dart';
 
-void main() => runApp(const CentrifugeApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+  runApp(const CentrifugeApp());
+}
 
 class CentrifugeApp extends StatelessWidget {
   const CentrifugeApp({super.key});
