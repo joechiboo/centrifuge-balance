@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'haptics.dart';
 import 'screens/game_screen.dart';
 import 'theme/palette.dart';
 
@@ -11,6 +12,7 @@ Future<void> main() async {
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
+  await Haptics.init();
   runApp(const CentrifugeApp());
 }
 

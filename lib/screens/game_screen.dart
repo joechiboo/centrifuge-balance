@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../data/levels.dart';
+import '../haptics.dart';
 import '../state/game_state.dart';
 import '../theme/palette.dart';
 import '../widgets/rotor.dart';
@@ -253,7 +253,7 @@ class _Segment extends StatelessWidget {
         behavior: HitTestBehavior.opaque,
         onTap: tappable
             ? () {
-                HapticFeedback.selectionClick();
+                Haptics.tap();
                 state.selectLevel(index);
               }
             : null,
@@ -554,7 +554,7 @@ class _StartButton extends StatelessWidget {
       child: GestureDetector(
         onTap: on
             ? () {
-                HapticFeedback.lightImpact();
+                Haptics.press();
                 state.launch();
               }
             : null,
@@ -635,7 +635,7 @@ class _RoundTool extends StatelessWidget {
               child: InkWell(
                 onTap: enabled
                     ? () {
-                        HapticFeedback.selectionClick();
+                        Haptics.tap();
                         onTap();
                       }
                     : null,
