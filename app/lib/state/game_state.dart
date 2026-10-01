@@ -79,17 +79,18 @@ class GameState extends ChangeNotifier {
   bool get isLastLevel => levelIndex == levels.length - 1;
   Iterable<int> get occupied => fixed.followedBy(placed);
 
-  bool get canLaunch => !busy && (isLevels ? total == k : total > 0);
+  bool get canLaunch =>
+      !busy &&
+      run != RunState.balanced &&
+      (isLevels ? total == k : total > 0);
   bool get canClear => !busy && (placed.isNotEmpty || hintStage > 0);
-  bool get canHint => !busy && isLevels;
+  bool get canHint => !busy && isLevels && run != RunState.balanced;
 
   String get launchLabel =>
       isLevels && total < k ? '還差 ${k - total} 支' : '啟動';
 
-  /// The big button doubles as "next level" right after a clear.
-  bool get canPrimary => showNext || canLaunch;
-  String get primaryLabel => showNext ? '下一關' : launchLabel;
-  void primaryAction() => showNext ? nextLevel() : launch();
+  /// Card shown over the rotor once a level's spin has coasted to a stop.
+  bool get showClearCard => isLevels && run == RunState.balanced;
   String get hintLabel => hintStage == 1 ? '看擺法' : '提示';
   String get countLabel => isLevels ? '試管 $total / $k' : '試管 $total / $n 孔';
 
@@ -256,12 +257,8 @@ class GameState extends ChangeNotifier {
     if (isLevels) {
       done.add(levelIndex);
       _save();
-      if (isLastLevel) {
-        _flash('全部過關！切到自由模式，換個孔數繼續玩。', MessageKind.ok);
-      } else {
-        _flash('配平成功！', MessageKind.ok);
-        showNext = true;
-      }
+      _flash('');
+      showNext = !isLastLevel;
     } else {
       _flash('配平成功：$n 孔放 $total 支。', MessageKind.ok);
     }

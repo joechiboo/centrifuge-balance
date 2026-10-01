@@ -54,7 +54,13 @@ class _GameScreenState extends State<GameScreen> {
                           const SizedBox(height: 18),
                           _Task(state: state),
                           const SizedBox(height: 12),
-                          RotorView(state: state),
+                          Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              RotorView(state: state),
+                              if (state.showClearCard) _ClearCard(state: state),
+                            ],
+                          ),
                           const SizedBox(height: 14),
                           _Lcd(state: state),
                           _Message(state: state),
@@ -328,6 +334,67 @@ class _Message extends StatelessWidget {
   }
 }
 
+/// Pops in over the rotor after the spin stops: result plus the next step.
+class _ClearCard extends StatelessWidget {
+  const _ClearCard({required this.state});
+  final GameState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Palette.of(context);
+    final last = state.isLastLevel;
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 260),
+      curve: Curves.easeOutBack,
+      builder: (context, t, child) => Opacity(
+        opacity: t.clamp(0, 1),
+        child: Transform.scale(scale: 0.85 + 0.15 * t, child: child),
+      ),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(28, 22, 28, 22),
+        decoration: BoxDecoration(
+          color: p.panel,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: p.line),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withValues(alpha: 0.18),
+                blurRadius: 24,
+                offset: const Offset(0, 8)),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.check_circle_rounded, color: p.ok, size: 44),
+            const SizedBox(height: 8),
+            Text(last ? '全部過關！' : '配平成功',
+                style: TextStyle(
+                    fontSize: 19, fontWeight: FontWeight.w700, color: p.ink)),
+            const SizedBox(height: 16),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: p.ok,
+                foregroundColor: p.bg,
+                minimumSize: const Size(140, 48),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
+                textStyle: const TextStyle(
+                    fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: 1),
+              ),
+              onPressed: last
+                  ? () => state.setMode(GameMode.free)
+                  : state.nextLevel,
+              child: Text(last ? '去自由模式' : '下一關'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// Bottom bar: two compact tool buttons and one big primary action.
 class _ActionBar extends StatelessWidget {
   const _ActionBar({required this.state});
@@ -337,7 +404,6 @@ class _ActionBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = Palette.of(context);
     final showHint = state.isLevels;
-    final primaryColor = state.showNext ? p.ok : p.ink;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
       child: Row(
@@ -364,7 +430,7 @@ class _ActionBar extends StatelessWidget {
             child: FilledButton(
               style: FilledButton.styleFrom(
                 minimumSize: const Size(0, 58),
-                backgroundColor: primaryColor,
+                backgroundColor: p.ink,
                 foregroundColor: p.bg,
                 disabledBackgroundColor: p.ink.withValues(alpha: 0.25),
                 disabledForegroundColor: p.bg,
@@ -373,8 +439,8 @@ class _ActionBar extends StatelessWidget {
                 textStyle: const TextStyle(
                     fontSize: 18, fontWeight: FontWeight.w700, letterSpacing: 2),
               ),
-              onPressed: state.canPrimary ? state.primaryAction : null,
-              child: Text(state.primaryLabel),
+              onPressed: state.canLaunch ? state.launch : null,
+              child: Text(state.launchLabel),
             ),
           ),
         ],
