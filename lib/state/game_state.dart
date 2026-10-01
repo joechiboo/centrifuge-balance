@@ -80,14 +80,11 @@ class GameState extends ChangeNotifier {
   Iterable<int> get occupied => fixed.followedBy(placed);
 
   bool get canLaunch =>
-      !busy &&
-      run != RunState.balanced &&
-      (isLevels ? total == k : total > 0);
+      !busy && run != RunState.balanced && (isLevels ? total == k : total > 0);
   bool get canClear => !busy && (placed.isNotEmpty || hintStage > 0);
   bool get canHint => !busy && isLevels && run != RunState.balanced;
 
-  String get launchLabel =>
-      isLevels && total < k ? '還差 ${k - total} 支' : '啟動';
+  String get launchLabel => isLevels && total < k ? '還差 ${k - total} 支' : '啟動';
 
   /// Celebration over the rotor once the spin has coasted to a stop.
   bool get showCelebration => run == RunState.balanced;
@@ -109,15 +106,16 @@ class GameState extends ChangeNotifier {
       notifyListeners();
     }
   }
+
   String get hintLabel => hintStage == 1 ? '看擺法' : '提示';
   String get countLabel => isLevels ? '試管 $total / $k' : '試管 $total / $n 孔';
 
   String get stateLabel => switch (run) {
-        RunState.idle => '待機',
-        RunState.spinning => '加速中',
-        RunState.balanced => '運轉平穩',
-        RunState.unbalanced => '震動過大，已停機',
-      };
+    RunState.idle => '待機',
+    RunState.spinning => '加速中',
+    RunState.balanced => '運轉平穩',
+    RunState.unbalanced => '震動過大，已停機',
+  };
 
   String get taskTitle =>
       isLevels ? '第 ${levelIndex + 1} 關 · 放 $k 支' : '自由模式 · $n 孔';
@@ -217,8 +215,12 @@ class GameState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Cleared levels and the current one can be revisited; nothing ahead.
+  bool canVisit(int i) =>
+      i >= 0 && i < levels.length && (i <= levelIndex || done.contains(i));
+
   void selectLevel(int i) {
-    if (busy) return;
+    if (busy || !canVisit(i)) return;
     mode = GameMode.levels;
     levelIndex = i;
     load();

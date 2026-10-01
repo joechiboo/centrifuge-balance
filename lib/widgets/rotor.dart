@@ -33,7 +33,8 @@ class RotorView extends StatefulWidget {
 
 class _RotorViewState extends State<RotorView> with TickerProviderStateMixin {
   static const _spinDuration = Duration(milliseconds: 4200);
-  static const _ramp = 0.35; // fraction of the spin spent accelerating / braking
+  static const _ramp =
+      0.35; // fraction of the spin spent accelerating / braking
   static const _peakDegPerSec = 1846.0;
 
   late final AnimationController _spin =
@@ -41,7 +42,9 @@ class _RotorViewState extends State<RotorView> with TickerProviderStateMixin {
         ..addListener(_onSpinTick)
         ..addStatusListener(_onSpinStatus);
   late final AnimationController _wobble = AnimationController(
-      vsync: this, duration: const Duration(milliseconds: 700));
+    vsync: this,
+    duration: const Duration(milliseconds: 700),
+  );
 
   double _angle = 0; // degrees
   double _lastT = 0;
@@ -103,8 +106,8 @@ class _RotorViewState extends State<RotorView> with TickerProviderStateMixin {
     final u = p < _ramp
         ? _smooth(p / _ramp)
         : p > 1 - _ramp
-            ? _smooth((1 - p) / _ramp)
-            : 1.0;
+        ? _smooth((1 - p) / _ramp)
+        : 1.0;
     final dt = (p - _lastT) * _spinDuration.inMilliseconds / 1000;
     _lastT = p;
     _angle = (_angle + u * _peakDegPerSec * dt) % 360;
@@ -144,43 +147,45 @@ class _RotorViewState extends State<RotorView> with TickerProviderStateMixin {
       label: '離心機轉盤俯視圖，${s.n} 孔，${s.countLabel}',
       child: AspectRatio(
         aspectRatio: 1,
-        child: LayoutBuilder(builder: (context, c) {
-          final scale = c.maxWidth / _box;
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTapUp: (d) => _onTap(d, scale),
-            child: AnimatedBuilder(
-              animation: _wobble,
-              builder: (context, child) {
-                final t = _wobble.value;
-                final damp = t >= 1 ? 0.0 : (1 - t);
-                final dx = math.sin(t * math.pi * 4) * 7 * damp * scale;
-                final dy = math.cos(t * math.pi * 3) * 4 * damp * scale;
-                final rot = math.sin(t * math.pi * 4) * 0.06 * damp;
-                return Transform.translate(
-                  offset: Offset(dx, dy),
-                  child: Transform.rotate(angle: rot, child: child),
-                );
-              },
-              child: CustomPaint(
-                painter: _RotorPainter(
-                  n: s.n,
-                  fixed: s.fixed,
-                  broken: s.broken,
-                  placed: s.placed,
-                  guide: s.guide,
-                  imbalance: s.imbalance,
-                  angle: _angle,
-                  speed: _speed,
-                  density: 0.3 + 0.6 * s.total / s.n,
-                  hubLabel: s.hubLabel,
-                  palette: palette,
+        child: LayoutBuilder(
+          builder: (context, c) {
+            final scale = c.maxWidth / _box;
+            return GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTapUp: (d) => _onTap(d, scale),
+              child: AnimatedBuilder(
+                animation: _wobble,
+                builder: (context, child) {
+                  final t = _wobble.value;
+                  final damp = t >= 1 ? 0.0 : (1 - t);
+                  final dx = math.sin(t * math.pi * 4) * 7 * damp * scale;
+                  final dy = math.cos(t * math.pi * 3) * 4 * damp * scale;
+                  final rot = math.sin(t * math.pi * 4) * 0.06 * damp;
+                  return Transform.translate(
+                    offset: Offset(dx, dy),
+                    child: Transform.rotate(angle: rot, child: child),
+                  );
+                },
+                child: CustomPaint(
+                  painter: _RotorPainter(
+                    n: s.n,
+                    fixed: s.fixed,
+                    broken: s.broken,
+                    placed: s.placed,
+                    guide: s.guide,
+                    imbalance: s.imbalance,
+                    angle: _angle,
+                    speed: _speed,
+                    density: 0.3 + 0.6 * s.total / s.n,
+                    hubLabel: s.hubLabel,
+                    palette: palette,
+                  ),
+                  size: Size.square(c.maxWidth),
                 ),
-                size: Size.square(c.maxWidth),
               ),
-            ),
-          );
-        }),
+            );
+          },
+        ),
       ),
     );
   }
@@ -220,12 +225,13 @@ class _RotorPainter extends CustomPainter {
     // Housing.
     canvas.drawCircle(c, 196, Paint()..color = p.panel);
     canvas.drawCircle(
-        c,
-        196,
-        Paint()
-          ..color = p.line
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2);
+      c,
+      196,
+      Paint()
+        ..color = p.line
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2,
+    );
 
     // Rotor group rotates during a spin.
     canvas.save();
@@ -241,12 +247,13 @@ class _RotorPainter extends CustomPainter {
     final blur = math.max(0.0, (speed - 0.45) / 0.55);
     if (blur > 0) {
       canvas.drawCircle(
-          c,
-          _ringR,
-          Paint()
-            ..color = p.cap.withValues(alpha: blur * density)
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = _holeRadius(n) * 1.6);
+        c,
+        _ringR,
+        Paint()
+          ..color = p.cap.withValues(alpha: blur * density)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = _holeRadius(n) * 1.6,
+      );
     }
 
     final v = imbalance;
@@ -263,14 +270,15 @@ class _RotorPainter extends CustomPainter {
       ..strokeWidth = 1.5;
 
     canvas.drawCircle(
-        c,
-        184,
-        Paint()
-          ..shader = RadialGradient(
-            center: const Alignment(-0.24, -0.36),
-            radius: 0.75,
-            colors: [p.steelHi, p.steelLo],
-          ).createShader(Rect.fromCircle(center: c, radius: 184)));
+      c,
+      184,
+      Paint()
+        ..shader = RadialGradient(
+          center: const Alignment(-0.24, -0.36),
+          radius: 0.75,
+          colors: [p.steelHi, p.steelLo],
+        ).createShader(Rect.fromCircle(center: c, radius: 184)),
+    );
     canvas.drawCircle(c, 184, ring);
 
     _paintGuide(canvas);
@@ -308,9 +316,15 @@ class _RotorPainter extends CustomPainter {
         final cap = isF ? p.fixed : p.cap;
         final hi = isF ? p.fixedHi : p.capHi;
         canvas.drawCircle(
-            o, r * 0.8, Paint()..color = cap.withValues(alpha: holeAlpha));
-        canvas.drawCircle(o + Offset(-r * 0.25, -r * 0.25), r * 0.28,
-            Paint()..color = hi.withValues(alpha: holeAlpha));
+          o,
+          r * 0.8,
+          Paint()..color = cap.withValues(alpha: holeAlpha),
+        );
+        canvas.drawCircle(
+          o + Offset(-r * 0.25, -r * 0.25),
+          r * 0.28,
+          Paint()..color = hi.withValues(alpha: holeAlpha),
+        );
       }
     }
   }
@@ -321,12 +335,13 @@ class _RotorPainter extends CustomPainter {
     final p = palette;
     canvas.drawCircle(c, _hubR, Paint()..color = p.steelLo);
     canvas.drawCircle(
-        c,
-        _hubR,
-        Paint()
-          ..color = p.wellRing
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.5);
+      c,
+      _hubR,
+      Paint()
+        ..color = p.wellRing
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5,
+    );
     final spinning = speed > 0;
     final big = spinning ? _rpmText((speed * 400).round() * 10) : hubLabel;
     final small = spinning ? 'rpm' : '';
@@ -342,9 +357,13 @@ class _RotorPainter extends CustomPainter {
     )..layout();
     final sp = TextPainter(
       text: TextSpan(
-          text: small,
-          style: TextStyle(
-              color: p.muted, fontSize: 10, fontWeight: FontWeight.w600)),
+        text: small,
+        style: TextStyle(
+          color: p.muted,
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
       textDirection: TextDirection.ltr,
     )..layout();
     final totalH = tp.height + (small.isEmpty ? 0 : sp.height - 2);
@@ -385,21 +404,23 @@ class _RotorPainter extends CustomPainter {
     const c = Offset(_centre, _centre);
     final end = c + Offset(u.x, u.y) * len;
     canvas.drawLine(
-        c,
-        end,
-        Paint()
-          ..color = palette.bad
-          ..strokeWidth = 5
-          ..strokeCap = StrokeCap.round);
+      c,
+      end,
+      Paint()
+        ..color = palette.bad
+        ..strokeWidth = 5
+        ..strokeCap = StrokeCap.round,
+    );
     final tip = end + Offset(u.x, u.y) * 16;
     final side = Offset(-u.y, u.x) * 11;
     canvas.drawPath(
-        Path()
-          ..moveTo(tip.dx, tip.dy)
-          ..lineTo(end.dx + side.dx, end.dy + side.dy)
-          ..lineTo(end.dx - side.dx, end.dy - side.dy)
-          ..close(),
-        Paint()..color = palette.bad);
+      Path()
+        ..moveTo(tip.dx, tip.dy)
+        ..lineTo(end.dx + side.dx, end.dy + side.dy)
+        ..lineTo(end.dx - side.dx, end.dy - side.dy)
+        ..close(),
+      Paint()..color = palette.bad,
+    );
   }
 
   static void _dashedCircle(Canvas canvas, Offset o, double r, Paint paint) {
@@ -412,7 +433,10 @@ class _RotorPainter extends CustomPainter {
     for (final m in source.computeMetrics()) {
       var d = 0.0;
       while (d < m.length) {
-        out.addPath(m.extractPath(d, math.min(d + dash, m.length)), Offset.zero);
+        out.addPath(
+          m.extractPath(d, math.min(d + dash, m.length)),
+          Offset.zero,
+        );
         d += dash + gap;
       }
     }

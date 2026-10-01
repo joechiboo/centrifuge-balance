@@ -93,8 +93,7 @@ class Palette {
         'Microsoft JhengHei',
         'sans-serif',
       ],
-      textTheme: Typography.material2021(platform: TargetPlatform.android)
-          .black
+      textTheme: Typography.material2021(platform: TargetPlatform.android).black
           .apply(bodyColor: ink, displayColor: ink),
       dividerColor: line,
     );

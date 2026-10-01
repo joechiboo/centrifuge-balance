@@ -48,8 +48,28 @@ void main() {
     expect(prefs.getStringList('cfg-done'), ['0']);
   });
 
+  test('only cleared levels and the current one can be revisited', () async {
+    SharedPreferences.setMockInitialValues({
+      'cfg-done': ['0', '1'],
+    });
+    final s = GameState();
+    await s.init();
+    expect(s.levelIndex, 2);
+    expect(s.canVisit(0), isTrue);
+    expect(s.canVisit(2), isTrue);
+    expect(s.canVisit(3), isFalse);
+    s.selectLevel(5);
+    expect(s.levelIndex, 2);
+    s.selectLevel(0);
+    expect(s.levelIndex, 0);
+    // Going back never loses progress; the later cleared level stays open.
+    expect(s.canVisit(1), isTrue);
+  });
+
   test('fixed and broken holes cannot be toggled', () {
-    final s = GameState()..selectLevel(3);
+    final s = GameState()
+      ..levelIndex = 3
+      ..load();
     expect(s.fixed, {0});
     expect(s.broken, {6});
     s.toggle(0);
@@ -58,7 +78,9 @@ void main() {
   });
 
   test('init resumes at the first unfinished level', () async {
-    SharedPreferences.setMockInitialValues({'cfg-done': ['0', '1']});
+    SharedPreferences.setMockInitialValues({
+      'cfg-done': ['0', '1'],
+    });
     final s = GameState();
     await s.init();
     expect(s.levelIndex, 2);

@@ -30,15 +30,27 @@ void main() {
       final l = levels[i];
       final holes = l.guide.expand((g) => g).toSet();
       expect(holes.length, l.k, reason: 'level ${i + 1} guide size');
-      expect(holes.containsAll(l.fixed), isTrue,
-          reason: 'level ${i + 1} guide covers fixed tubes');
-      expect(holes.any(l.broken.contains), isFalse,
-          reason: 'level ${i + 1} guide avoids broken holes');
-      expect(isBalanced(l.n, holes), isTrue,
-          reason: 'level ${i + 1} guide balances');
+      expect(
+        holes.containsAll(l.fixed),
+        isTrue,
+        reason: 'level ${i + 1} guide covers fixed tubes',
+      );
+      expect(
+        holes.any(l.broken.contains),
+        isFalse,
+        reason: 'level ${i + 1} guide avoids broken holes',
+      );
+      expect(
+        isBalanced(l.n, holes),
+        isTrue,
+        reason: 'level ${i + 1} guide balances',
+      );
       for (final g in l.guide) {
-        expect(isBalanced(l.n, g), isTrue,
-            reason: 'level ${i + 1} sub-group $g balances on its own');
+        expect(
+          isBalanced(l.n, g),
+          isTrue,
+          reason: 'level ${i + 1} sub-group $g balances on its own',
+        );
       }
     }
   });
