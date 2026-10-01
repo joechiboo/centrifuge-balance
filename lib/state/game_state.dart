@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/levels.dart';
 import '../logic/balance.dart';
+import 'progress_store.dart';
 
 enum GameMode { levels, free }
 
@@ -12,7 +12,6 @@ enum MessageKind { neutral, ok, bad }
 
 const int minHoles = 2;
 const int maxHoles = 30;
-const String _doneKey = 'cfg-done';
 
 /// All game state and rules. The rotor widget drives the spin animation and
 /// reports back through [completeSpin]; everything else lives here.
@@ -43,23 +42,65 @@ class GameState extends ChangeNotifier {
   final ValueNotifier<int> rpm = ValueNotifier<int>(0);
 
   int _freeN = 12;
-  SharedPreferences? _prefs;
+  ProgressStore? _store;
 
-  /// Restore cleared levels from disk and jump to the first unfinished one.
+  /// Restore records and the last session from disk: cleared levels, best
+  /// attempt counts, and exactly where the player was (mode, level, tubes
+  /// already placed). With no saved session, start at the first unfinished
+  /// level.
   Future<void> init() async {
+    ProgressStore? store;
     try {
-      _prefs = await SharedPreferences.getInstance();
-      final saved = _prefs!.getStringList(_doneKey) ?? const [];
-      done = saved.map(int.parse).where((i) => i < levels.length).toSet();
+      store = await ProgressStore.open();
     } catch (_) {
-      done = {};
+      store = null;
     }
-    if (mode == GameMode.levels) {
-      levelIndex = _firstUnfinished();
+    if (store == null) {
       load();
-    } else {
-      notifyListeners();
+      return;
     }
+    done = store.done.where((i) => i < levels.length).toSet();
+    final savedMode = store.mode;
+    final savedLevel = store.level;
+    final savedFreeN = store.freeN;
+    final savedPlaced = store.placed;
+    final savedFails = store.fails;
+
+    mode = savedMode == 'free' ? GameMode.free : GameMode.levels;
+    _freeN = (savedFreeN ?? 12).clamp(minHoles, maxHoles);
+    levelIndex =
+        savedLevel != null && savedLevel >= 0 && savedLevel < levels.length
+        ? savedLevel
+        : _firstUnfinished();
+    // Only now start writing, so a half-read session never clobbers disk.
+    _store = store;
+    load();
+    // Put the tubes back where they were, dropping anything that no longer
+    // fits (a fixed or broken hole, or more tubes than the level allows).
+    final valid = savedPlaced
+        .where(
+          (i) => i >= 0 && i < n && !fixed.contains(i) && !broken.contains(i),
+        )
+        .toSet();
+    if (!isLevels || fixed.length + valid.length <= k) {
+      placed = valid;
+      fails = savedFails;
+    }
+    _saveSession();
+    notifyListeners();
+  }
+
+  /// Fewest launches it took to clear level [i]; null if never cleared.
+  int? bestOf(int i) => _store?.best(i);
+
+  void _saveSession() {
+    _store?.saveSession(
+      mode: isLevels ? 'levels' : 'free',
+      level: levelIndex,
+      freeN: _freeN,
+      placed: placed,
+      fails: fails,
+    );
   }
 
   int _firstUnfinished() {
@@ -69,8 +110,8 @@ class GameState extends ChangeNotifier {
     return 0;
   }
 
-  void _save() {
-    _prefs?.setStringList(_doneKey, done.map((i) => '$i').toList());
+  void _saveDone() {
+    _store?.done = done;
   }
 
   Level get level => levels[levelIndex];
@@ -91,6 +132,9 @@ class GameState extends ChangeNotifier {
 
   /// Levels advance by themselves after the celebration; free mode waits.
   bool get autoAdvance => isLevels && !isLastLevel;
+
+  /// Launches so far on this layout, counting the one that just succeeded.
+  int get attempts => fails + 1;
 
   /// Text drawn in the rotor hub while idle: tubes placed over the goal.
   String get hubLabel => isLevels ? '$total/$k' : '$total';
@@ -173,6 +217,7 @@ class GameState extends ChangeNotifier {
       broken = {};
     }
     _flash('');
+    _saveSession();
     notifyListeners();
   }
 
@@ -190,6 +235,7 @@ class GameState extends ChangeNotifier {
       placed = {...placed, i};
     }
     _resetRun();
+    _saveSession();
     notifyListeners();
   }
 
@@ -200,6 +246,7 @@ class GameState extends ChangeNotifier {
     fails = 0;
     _resetRun();
     _flash('');
+    _saveSession();
     notifyListeners();
   }
 
@@ -266,6 +313,7 @@ class GameState extends ChangeNotifier {
     var t = '重心偏向箭頭那一側。';
     if (isLevels && fails >= 2) t += '\n提示：${level.hint}';
     _flash(t, MessageKind.bad);
+    _saveSession();
     notifyListeners();
     return false;
   }
@@ -276,7 +324,11 @@ class GameState extends ChangeNotifier {
     run = RunState.balanced;
     if (isLevels) {
       done.add(levelIndex);
-      _save();
+      _saveDone();
+      final prev = bestOf(levelIndex);
+      if (prev == null || attempts < prev) {
+        _store?.setBest(levelIndex, attempts);
+      }
       _flash('');
       showNext = !isLastLevel;
     } else {

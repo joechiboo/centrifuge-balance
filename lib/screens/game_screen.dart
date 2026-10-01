@@ -405,9 +405,18 @@ class _CelebrationState extends State<_Celebration>
     final s = widget.state;
     final last = s.isLevels && s.isLastLevel;
     final title = last ? '全部過關！' : '配平成功';
-    final sub = s.isLevels
-        ? (last ? '點一下進入自由模式' : '點一下繼續')
-        : '${s.n} 孔放 ${s.total} 支 · 點一下繼續';
+    final String sub;
+    if (!s.isLevels) {
+      sub = '${s.n} 孔放 ${s.total} 支 · 點一下繼續';
+    } else {
+      final best = s.bestOf(s.levelIndex);
+      final score = s.attempts == 1
+          ? '一次就過'
+          : best != null && best < s.attempts
+          ? '第 ${s.attempts} 次成功 · 最佳 $best 次'
+          : '第 ${s.attempts} 次成功';
+      sub = '$score · ${last ? '點一下進入自由模式' : '點一下繼續'}';
+    }
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: _go,

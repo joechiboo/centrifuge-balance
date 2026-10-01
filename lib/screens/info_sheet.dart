@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../data/levels.dart';
 import '../state/game_state.dart';
 import '../theme/palette.dart';
 
@@ -27,6 +28,11 @@ Future<void> showInfoSheet(BuildContext context, GameState state) {
             _legend(p, p.fixed, '已固定，不能拿走'),
             _legend(p, p.steelLo, '故障孔，不能放', dashed: true),
             const SizedBox(height: 18),
+            if (state.done.isNotEmpty) ...[
+              _h(p, '成績'),
+              _scores(p, state),
+              const SizedBox(height: 18),
+            ],
             _h(p, '背後的數學'),
             _para(p, '把每支試管看成從圓心指向孔位的向量，配平就是所有向量相加為零。'),
             _para(p, '定理：n 孔的離心機能配平 k 支試管，若且唯若 k 與 n−k 都能寫成 n 的質因數之和。'),
@@ -87,3 +93,30 @@ Widget _legend(Palette p, Color fill, String t, {bool dashed = false}) =>
         ],
       ),
     );
+
+/// One chip per cleared level: level number and the fewest launches it took.
+Widget _scores(Palette p, GameState state) => Wrap(
+  spacing: 8,
+  runSpacing: 8,
+  children: [
+    for (var i = 0; i < levels.length; i++)
+      if (state.done.contains(i))
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: p.ok),
+          ),
+          child: Text(
+            '第 ${i + 1} 關 · ${_attemptsText(state.bestOf(i))}',
+            style: TextStyle(fontSize: 13, color: p.ink),
+          ),
+        ),
+  ],
+);
+
+String _attemptsText(int? best) => switch (best) {
+  null => '已過關',
+  1 => '一次就過',
+  final n => '最佳 $n 次',
+};
