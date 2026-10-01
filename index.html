@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="離心機配平：把試管擺到平衡才能啟動的數學解謎遊戲">
+<title>離心機配平</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Oxanium:wght@500;700&display=swap">
+<style>
+/* Layout: one narrow instrument column. Rotor is the hero; a readout strip and two controls sit under it like a benchtop front panel. */
+:root{
+  --bg:#e9edf1; --panel:#f7f9fb; --ink:#18222d; --muted:#5b6876; --line:#c9d2db;
+  --steel-hi:#dfe5ea; --steel-lo:#aab5c0; --well:#2a3440; --well-ring:#8c98a5;
+  --cap:#7b56c2; --cap-hi:#b79cf0; --fixed:#c08a1e; --fixed-hi:#f0cd7a;
+  --ok:#157f5b; --bad:#c2372e; --lcd:#10202b; --lcd-fg:#8ff0c4;
+  --display:"Oxanium","Noto Sans TC",system-ui,sans-serif;
+  --body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#11171d; --panel:#1a222b; --ink:#e6ecf2; --muted:#93a1af; --line:#2f3b47;
+  --steel-hi:#4a5764; --steel-lo:#2c3742; --well:#0c1117; --well-ring:#66737f;
+  --cap:#9a78e6; --cap-hi:#d2c0ff; --fixed:#d6a23a; --fixed-hi:#ffe2a0;
+  --ok:#4fd0a0; --bad:#ff7a6e; --lcd:#070d12; --lcd-fg:#8ff0c4; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#11171d; --panel:#1a222b; --ink:#e6ecf2; --muted:#93a1af; --line:#2f3b47;
+  --steel-hi:#4a5764; --steel-lo:#2c3742; --well:#0c1117; --well-ring:#66737f;
+  --cap:#9a78e6; --cap-hi:#d2c0ff; --fixed:#d6a23a; --fixed-hi:#ffe2a0;
+  --ok:#4fd0a0; --bad:#ff7a6e; --lcd:#070d12; --lcd-fg:#8ff0c4; color-scheme:dark }
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.6;padding-inline:16px;padding-block:20px 40px}
+.wrap{max-width:520px;margin-inline:auto;display:flex;flex-direction:column;gap:16px}
+header{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+h1{font-size:1.5rem;font-weight:700;margin:0;letter-spacing:.06em}
+.mode{display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.mode button{border:0;background:transparent;color:var(--muted);font:500 .85rem var(--body);padding:6px 14px;cursor:pointer}
+.mode button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.levels{display:flex;flex-wrap:wrap;gap:6px}
+.levels button{width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--panel);color:var(--muted);font:700 .85rem var(--display);cursor:pointer}
+.levels button.done{border-color:var(--ok);color:var(--ok)}
+.levels button[aria-current="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.task{margin:0;font-size:1.05rem;font-weight:500;text-wrap:balance}
+.task small{display:block;color:var(--muted);font-weight:400;font-size:.88rem}
+.stepper{display:flex;align-items:center;gap:10px}
+.stepper button{width:40px;height:40px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:700 1.2rem var(--display);cursor:pointer}
+.stepper output{font:700 1.3rem var(--display);min-width:5.5em;text-align:center}
+.stage{position:relative;max-width:100%}
+svg{display:block;width:100%;height:auto;max-width:100%;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.hole{cursor:pointer;outline:none}
+.hole:focus-visible .well{stroke:var(--ink);stroke-width:3}
+.hole.locked,.hole.broken{cursor:default}
+.well{fill:var(--well);stroke:var(--well-ring);stroke-width:1.5}
+.capc{fill:var(--cap)} .caph{fill:var(--cap-hi)}
+.locked .capc{fill:var(--fixed)} .locked .caph{fill:var(--fixed-hi)}
+.broken .well{fill:var(--steel-lo);stroke-dasharray:3 3}
+.xmark{stroke:var(--muted);stroke-width:2.5;stroke-linecap:round}
+.arrow{stroke:var(--bad);stroke-width:5;stroke-linecap:round;fill:none}
+.arrowhead{fill:var(--bad)}
+.wobble svg{animation:wobble .7s ease-in-out both}
+@keyframes wobble{0%,100%{transform:translate(0,0) rotate(0)}15%{transform:translate(-7px,3px) rotate(-3deg)}35%{transform:translate(6px,-4px) rotate(4deg)}55%{transform:translate(-5px,-2px) rotate(-2deg)}75%{transform:translate(4px,3px) rotate(2deg)}}
+.guide{fill:none;stroke:var(--cap);stroke-width:3;stroke-dasharray:7 6;stroke-linejoin:round;opacity:.85}
+.lcd{background:var(--lcd);color:var(--lcd-fg);border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;gap:12px;font:500 .95rem var(--display);font-variant-numeric:tabular-nums;letter-spacing:.04em}
+.lcd.ok{color:var(--lcd-fg)} .lcd.bad .state{color:#ff8f85}
+.controls{display:grid;grid-template-columns:1fr 1fr 2fr;gap:10px}
+.controls.two{grid-template-columns:1fr 2fr}
+.btn{height:50px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:700 1rem var(--body);cursor:pointer}
+.btn.go{background:var(--ink);color:var(--bg);border-color:var(--ink);letter-spacing:.2em}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn:focus-visible,.levels button:focus-visible,.mode button:focus-visible,.stepper button:focus-visible,summary:focus-visible{outline:2px solid var(--cap);outline-offset:2px}
+.msg{min-height:3.2em;margin:0;padding:10px 14px;border-left:3px solid var(--line);color:var(--muted);font-size:.95rem}
+.msg.ok{border-color:var(--ok);color:var(--ink)} .msg.bad{border-color:var(--bad);color:var(--ink)}
+.msg button{margin-left:8px;border:0;background:var(--ok);color:var(--bg);font:700 .9rem var(--body);padding:6px 14px;border-radius:999px;cursor:pointer}
+details{border-top:1px solid var(--line);padding-top:10px;font-size:.92rem;color:var(--muted)}
+summary{cursor:pointer;color:var(--ink);font-weight:500}
+details p{margin:.6em 0;max-width:36em}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:.82rem;color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>離心機配平</h1>
+    <div class="mode" role="group" aria-label="模式">
+      <button id="mLevels" aria-pressed="true">關卡</button>
+      <button id="mFree" aria-pressed="false">自由</button>
+    </div>
+  </header>
+
+  <div class="levels" id="levels" aria-label="關卡"></div>
+  <div class="stepper" id="stepper" hidden>
+    <button id="nMinus" aria-label="減少孔數">−</button>
+    <output id="nOut">12 孔</output>
+    <button id="nPlus" aria-label="增加孔數">＋</button>
+  </div>
+
+  <p class="task" id="task"></p>
+
+  <div class="stage" id="stage">
+    <svg viewBox="0 0 400 400" id="svg" aria-label="離心機轉盤俯視圖">
+      <defs>
+        <radialGradient id="steel" cx="38%" cy="32%" r="75%">
+          <stop offset="0" stop-color="var(--steel-hi)"/><stop offset="1" stop-color="var(--steel-lo)"/>
+        </radialGradient>
+      </defs>
+      <circle cx="200" cy="200" r="196" fill="var(--panel)" stroke="var(--line)" stroke-width="2"/>
+      <g id="rotor">
+        <circle cx="200" cy="200" r="184" fill="url(#steel)" stroke="var(--well-ring)" stroke-width="1.5"/>
+        <circle cx="200" cy="200" r="34" fill="var(--steel-lo)" stroke="var(--well-ring)" stroke-width="1.5"/>
+        <circle cx="200" cy="200" r="12" fill="var(--well)"/>
+        <g id="guide"></g>
+        <g id="holes"></g>
+      </g>
+      <circle id="blur" cx="200" cy="200" r="138" fill="none" stroke="var(--cap)" pointer-events="none" style="opacity:0"/>
+      <g id="arrow"></g>
+    </svg>
+  </div>
+
+  <div class="lcd" id="lcd"><span id="count"></span><span class="state" id="state">待機</span></div>
+
+  <div class="controls" id="controls">
+    <button class="btn" id="clear">清空</button>
+    <button class="btn" id="hint">提示</button>
+    <button class="btn go" id="go">啟動</button>
+  </div>
+
+  <p class="msg" id="msg" aria-live="polite"></p>
+
+  <div class="legend">
+    <span><i style="background:var(--cap)"></i>你放的試管</span>
+    <span><i style="background:var(--fixed)"></i>已固定，不能拿走</span>
+    <span><i style="background:var(--steel-lo);border:1px dashed var(--muted)"></i>故障孔，不能放</span>
+  </div>
+
+  <details>
+    <summary>背後的數學</summary>
+    <p>把每支試管看成從圓心指向孔位的一個向量。配平的意思是：所有向量相加等於零。</p>
+    <p>定理：n 孔的離心機能配平 k 支試管，條件是 k 與 n−k 都能寫成 n 的質因數之和。12 孔的質因數是 2 與 3，所以 5 = 2 + 3 可以配平，1 與 11 則不行。</p>
+    <p id="table"></p>
+  </details>
+</div>
+
+<script>
+const LEVELS=[
+ {n:6,k:2,hint:'兩支試管面對面放，重量就互相抵銷。',guide:[[0,3]]},
+ {n:6,k:3,hint:'三支試管隔一個孔放一支，排成正三角形。',guide:[[0,2,4]]},
+ {n:6,k:4,fixed:[0,1],hint:'每一支固定的試管，都替它在正對面找個伴。',guide:[[0,3],[1,4]]},
+ {n:12,k:3,fixed:[0],broken:[6],hint:'對面的孔壞了，不能對放。試試以它為頂點排正三角形（每隔 4 孔）。',guide:[[0,4,8]]},
+ {n:12,k:5,hint:'把 5 支拆成 3 + 2。先每隔 4 孔放一支，排成正三角形；剩下 2 支找兩個面對面的空孔對放。兩組各自平衡，合起來也平衡。',guide:[[0,4,8],[1,7]]},
+ {n:12,k:7,hint:'看空孔。7 支放好後剩 5 個空孔，空孔平衡，試管也就平衡。',guide:[[0,4,8],[1,7],[3,9]]},
+ {n:10,k:5,hint:'5 是奇數，湊不成對放。10 孔每隔一孔放一支，是正五邊形。',guide:[[0,2,4,6,8]]},
+ {n:12,k:5,fixed:[0,1],hint:'一支固定管配對面，另一支當三角形的頂點。',guide:[[0,6],[1,5,9]]},
+ {n:20,k:7,hint:'7 = 5 + 2。每隔 4 孔排正五邊形，再找一組不相撞的對放。',guide:[[0,4,8,12,16],[1,11]]},
+ {n:30,k:7,hint:'30 孔的質因數有 2、3、5。7 = 5 + 2，五邊形每隔 6 孔一支。',guide:[[0,6,12,18,24],[1,16]]}
+];
+const $=id=>document.getElementById(id), NS='http://www.w3.org/2000/svg';
+let mode='levels', li=0, n=6, k=2, fixed=new Set(), broken=new Set(), placed=new Set(), fails=0, busy=false, hintStage=0, holeR=20;
+let done=new Set();
+try{done=new Set(JSON.parse(localStorage.getItem('cfg-done')||'[]'))}catch(e){}
+const save=()=>{try{localStorage.setItem('cfg-done',JSON.stringify([...done]))}catch(e){}};
+
+function primes(m){const p=[];for(let d=2;d*d<=m;d++){if(m%d===0){p.push(d);while(m%d===0)m/=d}}if(m>1)p.push(m);return p}
+function sumOf(m,ps){const ok=Array(m+1).fill(false);ok[0]=true;for(let i=1;i<=m;i++)for(const p of ps)if(i>=p&&ok[i-p]){ok[i]=true;break}return ok[m]}
+function balanceable(n){const ps=primes(n),r=[];for(let c=1;c<n;c++)if(sumOf(c,ps)&&sumOf(n-c,ps))r.push(c);return r}
+function vec(){let x=0,y=0;for(const i of [...fixed,...placed]){const a=2*Math.PI*i/n;x+=Math.sin(a);y-=Math.cos(a)}return [x,y]}
+const total=()=>fixed.size+placed.size;
+
+function el(tag,attrs,parent){const e=document.createElementNS(NS,tag);for(const a in attrs)e.setAttribute(a,attrs[a]);if(parent)parent.appendChild(e);return e}
+
+function draw(){
+  const g=$('holes');g.textContent='';$('arrow').textContent='';$('guide').textContent='';
+  const R=138, r=Math.min(27,Math.PI*R/n*0.78);holeR=r;
+  if(mode==='levels'&&hintStage===2)for(const grp of LEVELS[li].guide){const pts=grp.map(i=>{const a=2*Math.PI*i/n;return (200+R*Math.sin(a))+','+(200-R*Math.cos(a))}).join(' ');el(grp.length===2?'polyline':'polygon',{class:'guide',points:pts},$('guide'))}
+  for(let i=0;i<n;i++){
+    const a=2*Math.PI*i/n, cx=200+R*Math.sin(a), cy=200-R*Math.cos(a);
+    const isF=fixed.has(i), isB=broken.has(i), isP=placed.has(i);
+    const h=el('g',{class:'hole'+(isF?' locked':'')+(isB?' broken':''),role:'button',tabindex:(isF||isB)?-1:0,
+      'aria-label':`第 ${i+1} 孔，${isB?'故障':isF?'固定試管':isP?'有試管':'空'}`,'aria-pressed':isP},g);
+    el('circle',{class:'well',cx,cy,r},h);
+    if(isB){const d=r*.45;el('line',{class:'xmark',x1:cx-d,y1:cy-d,x2:cx+d,y2:cy+d},h);el('line',{class:'xmark',x1:cx-d,y1:cy+d,x2:cx+d,y2:cy-d},h)}
+    if(isF||isP){el('circle',{class:'capc',cx,cy,r:r*.8},h);el('circle',{class:'caph',cx:cx-r*.25,cy:cy-r*.25,r:r*.28},h)}
+    el('circle',{cx,cy,r:Math.max(r,16),fill:'transparent'},h);
+    if(!isF&&!isB){const t=()=>toggle(i);h.addEventListener('click',t);h.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();t();setTimeout(()=>{const hs=$('holes').children[i];hs&&hs.focus()},0)}})}
+  }
+  status();
+}
+function toggle(i){
+  if(busy)return;
+  if(placed.has(i))placed.delete(i);
+  else{if(mode==='levels'&&total()>=k)return flash(`這一關只有 ${k} 支試管，先拿走一支再放。`);placed.add(i)}
+  resetRun();draw();
+}
+function resetRun(){$('stage').className='stage';$('state').textContent='待機';$('lcd').className='lcd';}
+function flash(t,cls){const m=$('msg');m.className='msg'+(cls?' '+cls:'');m.textContent=t}
+function status(){
+  const t=total(), go=$('go');
+  if(mode==='levels'){
+    $('count').textContent=`試管 ${t} / ${k}`;
+    go.disabled=t!==k; go.textContent=t===k?'啟動':`還差 ${k-t} 支`;
+  }else{
+    $('count').textContent=`試管 ${t} / ${n} 孔`;
+    go.disabled=t===0; go.textContent='啟動';
+  }
+  $('clear').disabled=placed.size===0&&hintStage===0;
+}
+function load(){
+  placed=new Set();fails=0;busy=false;hintStage=0;resetRun();
+  $('hint').hidden=mode!=='levels';$('hint').textContent='提示';$('controls').className='controls'+(mode==='levels'?'':' two');
+  if(mode==='levels'){
+    const L=LEVELS[li];n=L.n;k=L.k;fixed=new Set(L.fixed||[]);broken=new Set(L.broken||[]);
+    const extra=[];if(fixed.size)extra.push(`其中 ${fixed.size} 支已固定`);if(broken.size)extra.push(`${broken.size} 個孔故障`);
+    $('task').innerHTML=`第 ${li+1} 關：${n} 孔轉盤，放滿 ${k} 支試管後啟動<small>${extra.length?extra.join('，')+'。':''}點孔位放入或取出試管。</small>`;
+    flash('把試管擺到整個轉盤重量平衡，再按啟動。');
+  }else{
+    fixed=new Set();broken=new Set();$('nOut').textContent=n+' 孔';
+    const b=balanceable(n);
+    $('task').innerHTML=`自由模式：${n} 孔轉盤<small>隨意擺放後啟動，驗證你的猜想。</small>`;
+    flash(b.length?`${n} 孔能配平的支數：${b.join('、')}。`:`${n} 孔除了全空或全滿，怎麼放都配不平。`);
+  }
+  const b=balanceable(n);
+  $('table').textContent=`目前 ${n} 孔（質因數 ${primes(n).join('、')}）能配平的支數：${b.length?b.join('、'):'無'}${b.length?'，以及放滿':'，只有放滿'}。`;
+  renderLevels();draw();
+}
+function renderLevels(){
+  const box=$('levels');box.hidden=mode!=='levels';$('stepper').hidden=mode!=='free';
+  box.textContent='';
+  LEVELS.forEach((L,i)=>{const b=document.createElement('button');b.textContent=i+1;b.setAttribute('aria-label',`第 ${i+1} 關${done.has(i)?'（已過關）':''}`);
+    if(done.has(i))b.className='done';if(i===li)b.setAttribute('aria-current','true');
+    b.onclick=()=>{li=i;load()};box.appendChild(b)});
+}
+function launch(){
+  if(busy)return;
+  const [x,y]=vec(), mag=Math.hypot(x,y), ok=mag<1e-9;
+  $('arrow').textContent='';
+  const st=$('stage');st.className='stage';void st.offsetWidth;
+  if(ok){
+    busy=true;$('lcd').className='lcd ok';flash('加速中…');
+    spin(()=>{
+      busy=false;$('state').textContent='運轉平穩';
+      if(mode==='levels'){
+        done.add(li);save();renderLevels();
+        const m=$('msg');m.className='msg ok';
+        if(li<LEVELS.length-1){m.textContent='配平成功，運轉平穩。';const b=document.createElement('button');b.textContent='下一關';b.onclick=()=>{li++;load()};m.appendChild(b)}
+        else m.textContent='全部過關。切到自由模式，換個孔數繼續驗證你的直覺。';
+      }else flash(`配平成功：${n} 孔放 ${total()} 支可以平衡。`,'ok');
+    });
+  }else{
+    fails++;st.className='stage wobble';$('state').textContent='震動過大，已停機';$('lcd').className='lcd bad';
+    const ux=x/mag, uy=y/mag, len=Math.min(110,40+mag*30), ex=200+ux*len, ey=200+uy*len;
+    const a=$('arrow');el('line',{class:'arrow',x1:200,y1:200,x2:ex,y2:ey},a);
+    const px=-uy, py=ux, s=11;
+    el('polygon',{class:'arrowhead',points:`${ex+ux*16},${ey+uy*16} ${ex+px*s},${ey+py*s} ${ex-px*s},${ey-py*s}`},a);
+    let t='重心偏向紅色箭頭那一側，調整後再試。';
+    if(mode==='levels'&&fails>=2)t+=' 提示：'+LEVELS[li].hint;
+    flash(t,'bad');
+  }
+}
+function spin(cb){
+  const dur=4200,a=.35,peak=1846,rotor=$('rotor'),blur=$('blur'),holes=$('holes'),dens=.3+.6*total()/n;
+  blur.setAttribute('stroke-width',holeR*1.6);
+  let ang=0,t0=null,last=null;const ss=x=>x*x*(3-2*x);
+  function f(ts){
+    if(t0===null){t0=ts;last=ts}
+    const p=Math.min(1,(ts-t0)/dur), u=p<a?ss(p/a):p>1-a?ss((1-p)/a):1;
+    ang+=u*peak*(ts-last)/1000;last=ts;
+    rotor.setAttribute('transform',`rotate(${ang%360} 200 200)`);
+    const b=Math.max(0,(u-.45)/.55);blur.style.opacity=b*dens;holes.style.opacity=1-b*.85;
+    $('state').textContent=(Math.round(u*400)*10).toLocaleString()+' rpm';
+    if(p<1)requestAnimationFrame(f);
+    else{rotor.removeAttribute('transform');blur.style.opacity=0;holes.style.opacity=1;cb()}
+  }
+  requestAnimationFrame(f);
+}
+$('hint').onclick=()=>{
+  if(busy||mode!=='levels')return;const L=LEVELS[li];
+  if(hintStage===0){hintStage=1;$('hint').textContent='看擺法';flash('提示：'+L.hint);status()}
+  else{hintStage=2;draw();flash('虛線是其中一種擺法，照著把試管放在虛線的頂點上。'+L.hint)}
+};
+$('go').onclick=launch;
+$('clear').onclick=()=>{if(busy)return;placed=new Set();hintStage=0;fails=0;$('hint').textContent='提示';resetRun();draw();flash('已清空。')};
+function setMode(m){mode=m;$('mLevels').setAttribute('aria-pressed',m==='levels');$('mFree').setAttribute('aria-pressed',m==='free');if(m==='free')n=12;load()}
+$('mLevels').onclick=()=>setMode('levels');$('mFree').onclick=()=>setMode('free');
+$('nMinus').onclick=()=>{if(n>2){n--;load()}};$('nPlus').onclick=()=>{if(n<30){n++;load()}};
+for(let i=0;i<LEVELS.length;i++){if(!done.has(i)){li=i;break}}
+load();
+</script>
+</body>
+</html>
