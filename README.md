@@ -39,7 +39,21 @@ flutter build web      # 網頁版
 
 每次 push，GitHub Actions 會分析、測試並打包 release APK，
 可在該次執行的 Artifacts 下載 `centrifuge-balance-apk` 安裝到手機試玩。
+CI 的 APK 是 debug 簽章，只能試玩；正式版請從 GitHub Releases 下載。
+
+### 正式簽章
+
+release build 會讀 `android/key.properties`（已 gitignore，只放在發版的電腦上）：
+
+```properties
+storePassword=...
+keyPassword=...
+keyAlias=release
+storeFile=C:/path/to/release.jks
+```
+
+沒有這個檔案時自動退回 debug 簽章，所以 CI 與新 clone 照樣能 build。
 
 ## 狀態
 
-網頁版 demo 完成；Flutter 版已移植全部關卡、自由模式、提示與動畫，並加上進度條、震動回饋與過關動畫。下一步是 App icon、正式簽章與上架。
+網頁版 demo 完成；Flutter 版已移植全部關卡、自由模式、提示與動畫，並加上進度條、震動回饋與過關動畫。App icon 與正式簽章已完成，APK 發布在 GitHub Releases；下一步是上架 Google Play。
