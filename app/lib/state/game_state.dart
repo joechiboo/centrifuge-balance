@@ -85,6 +85,11 @@ class GameState extends ChangeNotifier {
 
   String get launchLabel =>
       isLevels && total < k ? '還差 ${k - total} 支' : '啟動';
+
+  /// The big button doubles as "next level" right after a clear.
+  bool get canPrimary => showNext || canLaunch;
+  String get primaryLabel => showNext ? '下一關' : launchLabel;
+  void primaryAction() => showNext ? nextLevel() : launch();
   String get hintLabel => hintStage == 1 ? '看擺法' : '提示';
   String get countLabel => isLevels ? '試管 $total / $k' : '試管 $total / $n 孔';
 
@@ -95,25 +100,25 @@ class GameState extends ChangeNotifier {
         RunState.unbalanced => '震動過大，已停機',
       };
 
-  String get taskTitle => isLevels
-      ? '第 ${levelIndex + 1} 關：$n 孔轉盤，放滿 $k 支試管後啟動'
-      : '自由模式：$n 孔轉盤';
+  String get taskTitle =>
+      isLevels ? '第 ${levelIndex + 1} 關 · 放 $k 支' : '自由模式 · $n 孔';
 
+  /// Only the constraints worth a glance; empty when there are none.
   String get taskSub {
-    if (!isLevels) return '隨意擺放後啟動，驗證你的猜想。';
-    final extra = <String>[
-      if (fixed.isNotEmpty) '其中 ${fixed.length} 支已固定',
-      if (broken.isNotEmpty) '${broken.length} 個孔故障',
-    ];
-    return '${extra.isEmpty ? '' : '${extra.join('，')}。'}點孔位放入或取出試管。';
+    if (!isLevels) return '';
+    return [
+      if (fixed.isNotEmpty) '${fixed.length} 支已固定',
+      if (broken.isNotEmpty) '${broken.length} 孔故障',
+    ].join('，');
   }
 
-  String get mathTable {
+  /// Counts that balance on the current rotor, for the info sheet.
+  String get balanceableText {
     final b = balanceableCounts(n);
-    final ps = primeFactors(n).join('、');
-    return '目前 $n 孔（質因數 $ps）能配平的支數：'
-        '${b.isEmpty ? '無，只有放滿' : '${b.join('、')}，以及放滿'}。';
+    return b.isEmpty ? '只有放滿' : '${b.join('、')}，以及放滿';
   }
+
+  String get primeFactorText => primeFactors(n).join('、');
 
   /// Dashed guide shapes to draw, or empty when the player has not asked.
   List<List<int>> get guide =>
@@ -144,17 +149,13 @@ class GameState extends ChangeNotifier {
       k = l.k;
       fixed = l.fixed.toSet();
       broken = l.broken.toSet();
-      _flash('把試管擺到整個轉盤重量平衡，再按啟動。');
     } else {
       n = _freeN;
       k = n;
       fixed = {};
       broken = {};
-      final b = balanceableCounts(n);
-      _flash(b.isEmpty
-          ? '$n 孔除了全空或全滿，怎麼放都配不平。'
-          : '$n 孔能配平的支數：${b.join('、')}。');
     }
+    _flash('');
     notifyListeners();
   }
 
@@ -165,7 +166,7 @@ class GameState extends ChangeNotifier {
       placed = placed.difference({i});
     } else {
       if (isLevels && total >= k) {
-        _flash('這一關只有 $k 支試管，先拿走一支再放。');
+        _flash('只有 $k 支試管，先拿走一支。');
         notifyListeners();
         return;
       }
@@ -181,7 +182,7 @@ class GameState extends ChangeNotifier {
     hintStage = 0;
     fails = 0;
     _resetRun();
-    _flash('已清空。');
+    _flash('');
     notifyListeners();
   }
 
@@ -241,8 +242,8 @@ class GameState extends ChangeNotifier {
     fails++;
     run = RunState.unbalanced;
     imbalance = v;
-    var t = '重心偏向紅色箭頭那一側，調整後再試。';
-    if (isLevels && fails >= 2) t += ' 提示：${level.hint}';
+    var t = '重心偏向箭頭那一側。';
+    if (isLevels && fails >= 2) t += '\n提示：${level.hint}';
     _flash(t, MessageKind.bad);
     notifyListeners();
     return false;
@@ -256,13 +257,13 @@ class GameState extends ChangeNotifier {
       done.add(levelIndex);
       _save();
       if (isLastLevel) {
-        _flash('全部過關。切到自由模式，換個孔數繼續驗證你的直覺。', MessageKind.ok);
+        _flash('全部過關！切到自由模式，換個孔數繼續玩。', MessageKind.ok);
       } else {
-        _flash('配平成功，運轉平穩。', MessageKind.ok);
+        _flash('配平成功！', MessageKind.ok);
         showNext = true;
       }
     } else {
-      _flash('配平成功：$n 孔放 $total 支可以平衡。', MessageKind.ok);
+      _flash('配平成功：$n 孔放 $total 支。', MessageKind.ok);
     }
     notifyListeners();
   }

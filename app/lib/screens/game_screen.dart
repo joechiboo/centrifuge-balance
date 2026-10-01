@@ -4,6 +4,7 @@ import '../data/levels.dart';
 import '../state/game_state.dart';
 import '../theme/palette.dart';
 import '../widgets/rotor.dart';
+import 'info_sheet.dart';
 
 class GameScreen extends StatefulWidget {
   const GameScreen({super.key});
@@ -29,41 +30,40 @@ class _GameScreenState extends State<GameScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final p = Palette.of(context);
     return Scaffold(
       body: SafeArea(
         child: ListenableBuilder(
           listenable: state,
-          builder: (context, _) => SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(16, 20, 16, 40),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 520),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _Header(state: state),
-                    const SizedBox(height: 16),
-                    if (state.isLevels)
-                      _LevelPicker(state: state)
-                    else
-                      _HoleStepper(state: state),
-                    const SizedBox(height: 16),
-                    _Task(state: state),
-                    const SizedBox(height: 16),
-                    RotorView(state: state),
-                    const SizedBox(height: 16),
-                    _Lcd(state: state),
-                    const SizedBox(height: 16),
-                    _Controls(state: state),
-                    const SizedBox(height: 16),
-                    _Message(state: state),
-                    const SizedBox(height: 16),
-                    _Legend(palette: p),
-                    const SizedBox(height: 16),
-                    _Math(state: state),
-                  ],
-                ),
+          builder: (context, _) => Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520),
+              child: Column(
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _Header(state: state),
+                          const SizedBox(height: 14),
+                          if (state.isLevels)
+                            _Progress(state: state)
+                          else
+                            _HoleStepper(state: state),
+                          const SizedBox(height: 18),
+                          _Task(state: state),
+                          const SizedBox(height: 12),
+                          RotorView(state: state),
+                          const SizedBox(height: 14),
+                          _Lcd(state: state),
+                          _Message(state: state),
+                        ],
+                      ),
+                    ),
+                  ),
+                  _ActionBar(state: state),
+                ],
               ),
             ),
           ),
@@ -81,97 +81,112 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = Palette.of(context);
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text('離心機配平',
-            style: TextStyle(
-                fontSize: 24, fontWeight: FontWeight.w700, letterSpacing: 1.5)),
-        SegmentedButton<GameMode>(
-          showSelectedIcon: false,
-          style: ButtonStyle(
-            visualDensity: VisualDensity.compact,
-            foregroundColor: WidgetStateProperty.resolveWith((s) =>
-                s.contains(WidgetState.selected) ? p.bg : p.muted),
-            backgroundColor: WidgetStateProperty.resolveWith((s) =>
-                s.contains(WidgetState.selected) ? p.ink : Colors.transparent),
-            side: WidgetStatePropertyAll(BorderSide(color: p.line)),
-          ),
-          segments: const [
-            ButtonSegment(value: GameMode.levels, label: Text('關卡')),
-            ButtonSegment(value: GameMode.free, label: Text('自由')),
-          ],
-          selected: {state.mode},
-          onSelectionChanged: (s) => state.setMode(s.first),
+        const Expanded(
+          child: Text('離心機配平',
+              style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.2)),
+        ),
+        _ModeToggle(state: state),
+        const SizedBox(width: 4),
+        IconButton(
+          tooltip: '玩法與說明',
+          icon: Icon(Icons.info_outline, color: p.muted),
+          onPressed: () => showInfoSheet(context, state),
         ),
       ],
     );
   }
 }
 
-class _LevelPicker extends StatelessWidget {
-  const _LevelPicker({required this.state});
+/// Two-pill mode switch; sized by its own text so CJK labels never wrap.
+class _ModeToggle extends StatelessWidget {
+  const _ModeToggle({required this.state});
   final GameState state;
 
   @override
   Widget build(BuildContext context) {
     final p = Palette.of(context);
-    return Wrap(
-      spacing: 6,
-      runSpacing: 6,
-      children: [
-        for (var i = 0; i < levels.length; i++)
-          _LevelDot(
-            index: i,
-            current: i == state.levelIndex,
-            done: state.done.contains(i),
-            palette: p,
-            onTap: () => state.selectLevel(i),
+    Widget pill(GameMode m, String label) {
+      final on = state.mode == m;
+      return GestureDetector(
+        onTap: () => state.setMode(m),
+        child: Semantics(
+          button: true,
+          selected: on,
+          label: label,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+            decoration: BoxDecoration(
+              color: on ? p.ink : Colors.transparent,
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(label,
+                softWrap: false,
+                style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: on ? p.bg : p.muted)),
           ),
-      ],
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        border: Border.all(color: p.line),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [pill(GameMode.levels, '關卡'), pill(GameMode.free, '自由')],
+      ),
     );
   }
 }
 
-class _LevelDot extends StatelessWidget {
-  const _LevelDot({
-    required this.index,
-    required this.current,
-    required this.done,
-    required this.palette,
-    required this.onTap,
-  });
-  final int index;
-  final bool current, done;
-  final Palette palette;
-  final VoidCallback onTap;
+/// Ten milestone segments in one row. Not tappable: progress is earned.
+class _Progress extends StatelessWidget {
+  const _Progress({required this.state});
+  final GameState state;
 
   @override
   Widget build(BuildContext context) {
-    final p = palette;
-    final border = current ? p.ink : done ? p.ok : p.line;
-    final fg = current ? p.bg : done ? p.ok : p.muted;
+    final p = Palette.of(context);
+    final cleared = state.done.length;
     return Semantics(
-      button: true,
-      selected: current,
-      label: '第 ${index + 1} 關${done ? '（已過關）' : ''}',
-      child: InkWell(
-        onTap: onTap,
-        customBorder: const CircleBorder(),
-        child: Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: current ? p.ink : p.panel,
-            border: Border.all(color: border),
-          ),
-          alignment: Alignment.center,
-          child: Text('${index + 1}',
+      label: '進度：已過 $cleared 關，共 ${levels.length} 關，目前第 ${state.levelIndex + 1} 關',
+      child: Row(
+        children: [
+          for (var i = 0; i < levels.length; i++) ...[
+            if (i > 0) const SizedBox(width: 4),
+            Expanded(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                height: i == state.levelIndex ? 10 : 6,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(5),
+                  color: state.done.contains(i)
+                      ? p.ok
+                      : i == state.levelIndex
+                          ? p.cap
+                          : p.line,
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(width: 12),
+          Text('$cleared / ${levels.length}',
               style: TextStyle(
-                  color: fg,
-                  fontWeight: FontWeight.w700,
+                  color: p.muted,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
                   fontFeatures: const [FontFeature.tabularFigures()])),
-        ),
+        ],
       ),
     );
   }
@@ -184,36 +199,28 @@ class _HoleStepper extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = Palette.of(context);
-    Widget btn(String label, int delta, bool enabled, String semantics) =>
-        Semantics(
-          button: true,
-          label: semantics,
-          child: OutlinedButton(
-            onPressed: enabled ? () => state.changeHoles(delta) : null,
-            style: OutlinedButton.styleFrom(
-              minimumSize: const Size(44, 44),
-              padding: EdgeInsets.zero,
-              foregroundColor: p.ink,
-              side: BorderSide(color: p.line),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
-            ),
-            child: Text(label,
-                style: const TextStyle(
-                    fontSize: 20, fontWeight: FontWeight.w700)),
+    Widget btn(IconData icon, int delta, bool enabled, String label) =>
+        IconButton.outlined(
+          tooltip: label,
+          onPressed: enabled ? () => state.changeHoles(delta) : null,
+          icon: Icon(icon),
+          style: IconButton.styleFrom(
+            foregroundColor: p.ink,
+            side: BorderSide(color: p.line),
+            minimumSize: const Size(44, 44),
           ),
         );
     return Row(
       children: [
-        btn('−', -1, state.n > minHoles, '減少孔數'),
+        btn(Icons.remove, -1, state.n > minHoles, '減少孔數'),
         SizedBox(
-          width: 96,
+          width: 88,
           child: Text('${state.n} 孔',
               textAlign: TextAlign.center,
               style:
-                  const TextStyle(fontSize: 21, fontWeight: FontWeight.w700)),
+                  const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
         ),
-        btn('＋', 1, state.n < maxHoles, '增加孔數'),
+        btn(Icons.add, 1, state.n < maxHoles, '增加孔數'),
       ],
     );
   }
@@ -226,12 +233,16 @@ class _Task extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = Palette.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.baseline,
+      textBaseline: TextBaseline.alphabetic,
       children: [
         Text(state.taskTitle,
-            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w500)),
-        Text(state.taskSub, style: TextStyle(fontSize: 14, color: p.muted)),
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+        if (state.taskSub.isNotEmpty) ...[
+          const SizedBox(width: 10),
+          Text(state.taskSub, style: TextStyle(fontSize: 14, color: p.muted)),
+        ],
       ],
     );
   }
@@ -255,7 +266,7 @@ class _Lcd extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-          color: p.lcd, borderRadius: BorderRadius.circular(8)),
+          color: p.lcd, borderRadius: BorderRadius.circular(10)),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -276,68 +287,13 @@ class _Lcd extends StatelessWidget {
 
   static String _group(int v) {
     final s = v.toString();
-    return s.length <= 3 ? s : '${s.substring(0, s.length - 3)},${s.substring(s.length - 3)}';
+    return s.length <= 3
+        ? s
+        : '${s.substring(0, s.length - 3)},${s.substring(s.length - 3)}';
   }
 }
 
-class _Controls extends StatelessWidget {
-  const _Controls({required this.state});
-  final GameState state;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = Palette.of(context);
-    final plain = OutlinedButton.styleFrom(
-      minimumSize: const Size(0, 50),
-      foregroundColor: p.ink,
-      backgroundColor: p.panel,
-      side: BorderSide(color: p.line),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-    );
-    return Row(
-      children: [
-        Expanded(
-          child: OutlinedButton(
-            style: plain,
-            onPressed: state.canClear ? state.clear : null,
-            child: const Text('清空'),
-          ),
-        ),
-        if (state.isLevels) ...[
-          const SizedBox(width: 10),
-          Expanded(
-            child: OutlinedButton(
-              style: plain,
-              onPressed: state.canHint ? state.showHint : null,
-              child: Text(state.hintLabel),
-            ),
-          ),
-        ],
-        const SizedBox(width: 10),
-        Expanded(
-          flex: 2,
-          child: FilledButton(
-            style: FilledButton.styleFrom(
-              minimumSize: const Size(0, 50),
-              backgroundColor: p.ink,
-              foregroundColor: p.bg,
-              disabledBackgroundColor: p.ink.withValues(alpha: 0.45),
-              disabledForegroundColor: p.bg,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-              textStyle: const TextStyle(
-                  fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: 3),
-            ),
-            onPressed: state.canLaunch ? state.launch : null,
-            child: Text(state.launchLabel),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
+/// Only appears when there is something to say; collapses otherwise.
 class _Message extends StatelessWidget {
   const _Message({required this.state});
   final GameState state;
@@ -348,104 +304,125 @@ class _Message extends StatelessWidget {
     final accent = switch (state.messageKind) {
       MessageKind.ok => p.ok,
       MessageKind.bad => p.bad,
-      MessageKind.neutral => p.line,
+      MessageKind.neutral => p.cap,
     };
-    final fg = state.messageKind == MessageKind.neutral ? p.muted : p.ink;
-    return Container(
-      constraints: const BoxConstraints(minHeight: 52),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-          border: Border(left: BorderSide(color: accent, width: 3))),
-      child: Semantics(
-        liveRegion: true,
-        child: Wrap(
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: 8,
-          runSpacing: 6,
-          children: [
-            Text(state.message, style: TextStyle(fontSize: 15, color: fg)),
-            if (state.showNext)
-              FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: p.ok,
-                  foregroundColor: p.bg,
-                  visualDensity: VisualDensity.compact,
-                  textStyle: const TextStyle(fontWeight: FontWeight.w700),
-                ),
-                onPressed: state.nextLevel,
-                child: const Text('下一關'),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _Legend extends StatelessWidget {
-  const _Legend({required this.palette});
-  final Palette palette;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = palette;
-    Widget item(Color fill, String text, {bool dashed = false}) => Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 12,
-              height: 12,
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 200),
+      alignment: Alignment.topCenter,
+      child: state.message.isEmpty
+          ? const SizedBox(width: double.infinity)
+          : Container(
+              margin: const EdgeInsets.only(top: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: fill,
-                border: dashed ? Border.all(color: p.muted) : null,
+                color: accent.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Semantics(
+                liveRegion: true,
+                child: Text(state.message,
+                    style: TextStyle(fontSize: 15, color: p.ink, height: 1.5)),
               ),
             ),
-            const SizedBox(width: 5),
-            Text(text, style: TextStyle(fontSize: 13, color: p.muted)),
-          ],
-        );
-    return Wrap(
-      spacing: 16,
-      runSpacing: 6,
-      children: [
-        item(p.cap, '你放的試管'),
-        item(p.fixed, '已固定，不能拿走'),
-        item(p.steelLo, '故障孔，不能放', dashed: true),
-      ],
     );
   }
 }
 
-class _Math extends StatelessWidget {
-  const _Math({required this.state});
+/// Bottom bar: two compact tool buttons and one big primary action.
+class _ActionBar extends StatelessWidget {
+  const _ActionBar({required this.state});
   final GameState state;
 
   @override
   Widget build(BuildContext context) {
     final p = Palette.of(context);
-    final body = TextStyle(fontSize: 14.5, color: p.muted, height: 1.6);
-    return Theme(
-      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-      child: ExpansionTile(
-        tilePadding: EdgeInsets.zero,
-        childrenPadding: const EdgeInsets.only(bottom: 8),
-        shape: Border(top: BorderSide(color: p.line)),
-        collapsedShape: Border(top: BorderSide(color: p.line)),
-        title: const Text('背後的數學',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
-        expandedCrossAxisAlignment: CrossAxisAlignment.start,
+    final showHint = state.isLevels;
+    final primaryColor = state.showNext ? p.ok : p.ink;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+      child: Row(
         children: [
-          Text('把每支試管看成從圓心指向孔位的一個向量。配平的意思是：所有向量相加等於零。',
-              style: body),
-          const SizedBox(height: 8),
-          Text(
-              '定理：n 孔的離心機能配平 k 支試管，條件是 k 與 n−k 都能寫成 n 的質因數之和。'
-              '12 孔的質因數是 2 與 3，所以 5 = 2 + 3 可以配平，1 與 11 則不行。',
-              style: body),
-          const SizedBox(height: 8),
-          Text(state.mathTable, style: body),
+          _Tool(
+            icon: Icons.replay_rounded,
+            label: '清空',
+            enabled: state.canClear,
+            onTap: state.clear,
+          ),
+          if (showHint) ...[
+            const SizedBox(width: 10),
+            _Tool(
+              icon: state.hintStage == 1
+                  ? Icons.auto_awesome_rounded
+                  : Icons.lightbulb_outline_rounded,
+              label: state.hintLabel,
+              enabled: state.canHint && state.hintStage < 2,
+              onTap: state.showHint,
+            ),
+          ],
+          const SizedBox(width: 10),
+          Expanded(
+            child: FilledButton(
+              style: FilledButton.styleFrom(
+                minimumSize: const Size(0, 58),
+                backgroundColor: primaryColor,
+                foregroundColor: p.bg,
+                disabledBackgroundColor: p.ink.withValues(alpha: 0.25),
+                disabledForegroundColor: p.bg,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
+                textStyle: const TextStyle(
+                    fontSize: 18, fontWeight: FontWeight.w700, letterSpacing: 2),
+              ),
+              onPressed: state.canPrimary ? state.primaryAction : null,
+              child: Text(state.primaryLabel),
+            ),
+          ),
         ],
+      ),
+    );
+  }
+}
+
+class _Tool extends StatelessWidget {
+  const _Tool({
+    required this.icon,
+    required this.label,
+    required this.enabled,
+    required this.onTap,
+  });
+  final IconData icon;
+  final String label;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Palette.of(context);
+    final fg = enabled ? p.ink : p.ink.withValues(alpha: 0.3);
+    return Material(
+      color: p.panel,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          width: 64,
+          height: 58,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: p.line),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 22, color: fg),
+              const SizedBox(height: 2),
+              Text(label,
+                  style: TextStyle(
+                      fontSize: 11, fontWeight: FontWeight.w600, color: fg)),
+            ],
+          ),
+        ),
       ),
     );
   }
