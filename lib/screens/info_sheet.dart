@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../data/levels.dart';
 import '../state/game_state.dart';
 import '../theme/palette.dart';
+import 'privacy_screen.dart';
 
 /// Rules, legend and the maths, tucked away behind the info button.
 Future<void> showInfoSheet(BuildContext context, GameState state) {
@@ -39,6 +40,16 @@ Future<void> showInfoSheet(BuildContext context, GameState state) {
             _para(
               p,
               '目前 ${state.n} 孔（質因數 ${state.primeFactorText}）能配平的支數：${state.balanceableText}。',
+            ),
+            const SizedBox(height: 18),
+            Divider(color: p.line, height: 1),
+            _link(
+              p,
+              icon: Icons.privacy_tip_outlined,
+              label: '隱私權政策',
+              onTap: () => Navigator.of(context, rootNavigator: true).push(
+                MaterialPageRoute<void>(builder: (_) => const PrivacyScreen()),
+              ),
             ),
           ],
         ),
@@ -120,3 +131,33 @@ String _attemptsText(int? best) => switch (best) {
   1 => '一次就過',
   final n => '最佳 $n 次',
 };
+
+/// A row that opens another page, Settings-style.
+Widget _link(
+  Palette p, {
+  required IconData icon,
+  required String label,
+  required VoidCallback onTap,
+}) => InkWell(
+  onTap: onTap,
+  child: Padding(
+    padding: const EdgeInsets.symmetric(vertical: 14),
+    child: Row(
+      children: [
+        Icon(icon, size: 20, color: p.muted),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: p.ink,
+            ),
+          ),
+        ),
+        Icon(Icons.chevron_right_rounded, color: p.muted),
+      ],
+    ),
+  ),
+);
