@@ -53,4 +53,14 @@
 | 聯絡 Email | SUPPORT@ucl.com.tw |
 | 隱私權政策網址 | https://joechiboo.github.io/centrifuge-balance/privacy.html |
 
+## 圖片素材（`docs/store/`）
+
+| 檔案 | 用途 | 規格 |
+|---|---|---|
+| `icon-512.png` | 高解析圖示 | 512×512 PNG，從 `assets/icon/icon.png` 縮小 |
+| `feature-graphic-1024x500.png` | 主要圖片 | 1024×500 PNG |
+| `screenshots/01-hint.png` ～ `06-math.png` | 手機螢幕截圖，依序上傳 | 1226×2180（9:16） |
+
+截圖是 2026-10-03 在 SM-S9110 上用 adb 拍的。原圖 1080×2340 超過 2:1，Play 不收，所以裁掉狀態列與手勢列後左右補背景色成 9:16。
+
 功能有增減時，記得一起更新這份說明，再同步到 Play Console。
