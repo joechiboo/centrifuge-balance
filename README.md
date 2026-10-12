@@ -59,4 +59,4 @@ storeFile=C:/path/to/release.jks
 
 ## 狀態
 
-v1.0.0 已於 2026-10 上架 Google Play（大安聯合醫事檢驗所）。v1.1.0 已合進 main：實務模式、醫檢師執照、英文介面、文字精簡；待本機打包 `1.1.0+2` 上傳 Play，並補英文商店資訊（見 `docs/globalization-plan.md`）。
+v1.0.0 已於 2026-10-07 上架 Google Play（大安聯合醫事檢驗所，只開台灣）。v1.1.0（`1.1.0+2`：實務模式、醫檢師執照、英文介面、文字精簡）已於 2026-10-12 連同 en-US 商店資訊、預設語言改 en-US、國家開全部一起送審（見 `docs/globalization-plan.md`）。APK 同步發在 GitHub Releases。
