@@ -59,4 +59,4 @@ storeFile=C:/path/to/release.jks
 
 ## 狀態
 
-網頁版 demo 完成；Flutter 版已移植全部關卡、自由模式、提示與動畫，並加上進度條、震動回饋與過關動畫。App icon 與正式簽章已完成，APK 發布在 GitHub Releases；下一步是上架 Google Play。
+v1.0.0 已於 2026-10 上架 Google Play（大安聯合醫事檢驗所）。v1.1.0 已合進 main：實務模式、醫檢師執照、英文介面、文字精簡；待本機打包 `1.1.0+2` 上傳 Play，並補英文商店資訊（見 `docs/globalization-plan.md`）。
