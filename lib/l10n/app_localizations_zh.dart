@@ -133,10 +133,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get rulesHeading => '玩法';
 
   @override
-  String get rule1 => '點孔位放試管，放滿後啟動。';
-
-  @override
-  String get rule2 => '不平衡會震動，箭頭指出偏重方向。';
+  String get rule1 => '點孔位放試管，按啟動。';
 
   @override
   String get rule3 => '實務模式：檢體不能動，用備用管配平。';

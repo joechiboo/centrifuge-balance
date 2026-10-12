@@ -133,10 +133,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get rulesHeading => 'How to play';
 
   @override
-  String get rule1 => 'Tap holes to place tubes, then start.';
-
-  @override
-  String get rule2 => 'Unbalanced? It shakes; the arrow shows the heavy side.';
+  String get rule1 => 'Tap holes to place tubes, then press Start.';
 
   @override
   String get rule3 => 'Lab: specimens stay put; balance with spare tubes.';

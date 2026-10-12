@@ -89,6 +89,28 @@ void main() {
     expect(find.textContaining('隱私'), findsNothing);
   });
 
+  testWidgets('info sheet shows only what the current rotor needs', (
+    tester,
+  ) async {
+    await pumpApp(tester, const Locale('en', 'US'));
+
+    // Level 1: no fixed tubes, no broken holes, not the lab.
+    await tester.tap(find.byIcon(Icons.info_outline));
+    await tester.pumpAndSettle();
+    expect(find.text('Your tube'), findsOneWidget);
+    expect(find.text('Fixed tube'), findsNothing);
+    expect(find.text('Spare tube'), findsNothing);
+    expect(find.text('Broken hole'), findsNothing);
+    expect(find.textContaining('Lab:'), findsNothing);
+
+    // The maths stays folded until asked for.
+    expect(find.text('The maths'), findsOneWidget);
+    expect(find.textContaining('6 holes (prime factors 2, 3)'), findsNothing);
+    await tester.tap(find.text('The maths'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('6 holes (prime factors 2, 3)'), findsOneWidget);
+  });
+
   testWidgets('info sheet opens the in-app privacy policy in Chinese', (
     tester,
   ) async {

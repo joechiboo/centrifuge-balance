@@ -299,14 +299,8 @@ abstract class AppLocalizations {
   /// rule1
   ///
   /// In en, this message translates to:
-  /// **'Tap holes to place tubes, then start.'**
+  /// **'Tap holes to place tubes, then press Start.'**
   String get rule1;
-
-  /// rule2
-  ///
-  /// In en, this message translates to:
-  /// **'Unbalanced? It shakes; the arrow shows the heavy side.'**
-  String get rule2;
 
   /// rule3
   ///

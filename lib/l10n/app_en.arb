@@ -201,13 +201,9 @@
   "@rulesHeading": {
     "description": "rulesHeading"
   },
-  "rule1": "Tap holes to place tubes, then start.",
+  "rule1": "Tap holes to place tubes, then press Start.",
   "@rule1": {
     "description": "rule1"
-  },
-  "rule2": "Unbalanced? It shakes; the arrow shows the heavy side.",
-  "@rule2": {
-    "description": "rule2"
   },
   "rule3": "Lab: specimens stay put; balance with spare tubes.",
   "@rule3": {

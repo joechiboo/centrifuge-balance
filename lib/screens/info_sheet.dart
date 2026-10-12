@@ -28,19 +28,23 @@ Future<void> showInfoSheet(BuildContext context, GameState state) {
           children: [
             _h(p, l.rulesHeading),
             _bullet(p, l.rule1),
-            _bullet(p, l.rule2),
-            _bullet(p, l.rule3),
+            if (state.isLab) _bullet(p, l.rule3),
             const SizedBox(height: 18),
             _h(p, l.legendHeading),
+            // Only the kinds of tube and hole that this rotor actually shows.
             Wrap(
               spacing: 18,
               runSpacing: 8,
               children: [
-                _legend(p, p.cap, l.legendYours),
-                _legend(p, p.fixed, l.legendFixed),
-                _legend(p, p.fixed, l.legendSpecimen),
-                _legend(p, p.spare, l.legendSpare),
-                _legend(p, p.steelLo, l.legendBroken, dashed: true),
+                if (state.isLab) ...[
+                  _legend(p, p.fixed, l.legendSpecimen),
+                  _legend(p, p.spare, l.legendSpare),
+                ] else ...[
+                  _legend(p, p.cap, l.legendYours),
+                  if (state.fixed.isNotEmpty) _legend(p, p.fixed, l.legendFixed),
+                ],
+                if (state.broken.isNotEmpty)
+                  _legend(p, p.steelLo, l.legendBroken, dashed: true),
               ],
             ),
             const SizedBox(height: 18),
@@ -51,11 +55,28 @@ Future<void> showInfoSheet(BuildContext context, GameState state) {
               _scores(p, l, state, Campaign.lab),
               const SizedBox(height: 18),
             ],
-            _h(p, l.mathHeading),
-            _para(p, l.math1),
-            _para(p, l.math2),
-            _para(p, l.mathNow(state.n, state.factors().join(sep), countsText)),
-            const SizedBox(height: 18),
+            Divider(color: p.line, height: 1),
+            // Collapsed by default: most players never need the maths.
+            Theme(
+              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+              child: ExpansionTile(
+                tilePadding: EdgeInsets.zero,
+                childrenPadding: const EdgeInsets.only(bottom: 12),
+                expandedCrossAxisAlignment: CrossAxisAlignment.start,
+                leading: Icon(Icons.functions_rounded, size: 20, color: p.muted),
+                iconColor: p.muted,
+                collapsedIconColor: p.muted,
+                title: Text(l.mathHeading, style: _linkStyle(p)),
+                children: [
+                  _para(p, l.math1),
+                  _para(p, l.math2),
+                  _para(
+                    p,
+                    l.mathNow(state.n, state.factors().join(sep), countsText),
+                  ),
+                ],
+              ),
+            ),
             Divider(color: p.line, height: 1),
             _link(
               p,
@@ -161,6 +182,9 @@ List<Widget> _bestMark(Palette p, AppLocalizations l, int? best) {
   ];
 }
 
+TextStyle _linkStyle(Palette p) =>
+    TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: p.ink);
+
 /// A row that opens another page, Settings-style.
 Widget _link(
   Palette p, {
@@ -175,16 +199,7 @@ Widget _link(
       children: [
         Icon(icon, size: 20, color: p.muted),
         const SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: p.ink,
-            ),
-          ),
-        ),
+        Expanded(child: Text(label, style: _linkStyle(p))),
         Icon(Icons.chevron_right_rounded, color: p.muted),
       ],
     ),
