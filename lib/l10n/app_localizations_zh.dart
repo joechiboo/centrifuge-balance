@@ -160,14 +160,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get scoresHeading => '成績';
 
   @override
-  String get scoreCleared => '已過關';
-
-  @override
-  String scoreBest(int n) {
-    return '最佳 $n 次';
-  }
-
-  @override
   String get mathHeading => '背後的數學';
 
   @override

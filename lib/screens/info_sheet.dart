@@ -137,50 +137,70 @@ Widget _legend(Palette p, Color fill, String t, {bool dashed = false}) => Row(
   ],
 );
 
-/// One chip per cleared level of a campaign: its number and best score.
+/// One strip per campaign: a numbered dot for every level, filled once it is
+/// cleared and gold when it was cleared in a single launch. The per-level
+/// best count lives on the game screen, so it is not repeated here.
 Widget _scores(Palette p, AppLocalizations l, GameState state, Campaign c) {
   final all = c == Campaign.lab ? labLevels : levels;
   final done = c == Campaign.lab ? state.labDone : state.done;
   if (done.isEmpty) return const SizedBox.shrink();
-  return Wrap(
-    spacing: 8,
-    runSpacing: 8,
+  final fill = c == Campaign.lab ? p.spare : p.ok;
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      for (var i = 0; i < all.length; i++)
-        if (done.contains(i))
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: c == Campaign.lab ? p.spare : p.ok),
+      Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Text(
+          c == Campaign.lab ? l.modeLab : l.modeLevels,
+          style: TextStyle(fontSize: 12, color: p.muted),
+        ),
+      ),
+      Wrap(
+        spacing: 6,
+        runSpacing: 6,
+        children: [
+          for (var i = 0; i < all.length; i++)
+            _dot(
+              p,
+              i + 1,
+              cleared: done.contains(i),
+              firstTry: state.bestOf(c, i) == 1,
+              fill: fill,
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  c == Campaign.lab ? l.labTitle(i + 1) : l.levelTitle(i + 1),
-                  style: TextStyle(fontSize: 13, color: p.ink),
-                ),
-                const SizedBox(width: 6),
-                ..._bestMark(p, l, state.bestOf(c, i)),
-              ],
-            ),
-          ),
+        ],
+      ),
     ],
   );
 }
 
-List<Widget> _bestMark(Palette p, AppLocalizations l, int? best) {
-  if (best == null) {
-    return [
-      Text(l.scoreCleared, style: TextStyle(fontSize: 12, color: p.muted)),
-    ];
-  }
-  if (best == 1) return [Icon(Icons.star_rounded, size: 14, color: p.fixed)];
-  return [
-    Text(l.scoreBest(best), style: TextStyle(fontSize: 12, color: p.muted)),
-  ];
-}
+Widget _dot(
+  Palette p,
+  int n, {
+  required bool cleared,
+  required bool firstTry,
+  required Color fill,
+}) => Container(
+  width: 24,
+  height: 24,
+  alignment: Alignment.center,
+  decoration: BoxDecoration(
+    shape: BoxShape.circle,
+    color: !cleared
+        ? Colors.transparent
+        : firstTry
+        ? p.fixed
+        : fill,
+    border: cleared ? null : Border.all(color: p.line),
+  ),
+  child: Text(
+    '$n',
+    style: TextStyle(
+      fontSize: 11,
+      fontWeight: cleared ? FontWeight.w700 : FontWeight.w400,
+      color: cleared ? p.panel : p.muted,
+    ),
+  ),
+);
 
 TextStyle _linkStyle(Palette p) =>
     TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: p.ink);

@@ -42,8 +42,6 @@
   "legendSpare": "備用管",
   "legendBroken": "故障孔",
   "scoresHeading": "成績",
-  "scoreCleared": "已過關",
-  "scoreBest": "最佳 {n} 次",
   "mathHeading": "背後的數學",
   "math1": "每支試管是從圓心指向孔位的向量，配平就是向量和為零。",
   "math2": "n 孔能配平 k 支，若且唯若 k 與 n−k 都能寫成 n 的質因數之和。",

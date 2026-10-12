@@ -160,14 +160,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get scoresHeading => 'Scores';
 
   @override
-  String get scoreCleared => 'cleared';
-
-  @override
-  String scoreBest(int n) {
-    return 'best $n';
-  }
-
-  @override
   String get mathHeading => 'The maths';
 
   @override

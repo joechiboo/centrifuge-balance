@@ -237,19 +237,6 @@
   "@scoresHeading": {
     "description": "scoresHeading"
   },
-  "scoreCleared": "cleared",
-  "@scoreCleared": {
-    "description": "scoreCleared"
-  },
-  "scoreBest": "best {n}",
-  "@scoreBest": {
-    "description": "scoreBest",
-    "placeholders": {
-      "n": {
-        "type": "int"
-      }
-    }
-  },
   "mathHeading": "The maths",
   "@mathHeading": {
     "description": "mathHeading"

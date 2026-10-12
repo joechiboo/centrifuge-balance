@@ -350,18 +350,6 @@ abstract class AppLocalizations {
   /// **'Scores'**
   String get scoresHeading;
 
-  /// scoreCleared
-  ///
-  /// In en, this message translates to:
-  /// **'cleared'**
-  String get scoreCleared;
-
-  /// scoreBest
-  ///
-  /// In en, this message translates to:
-  /// **'best {n}'**
-  String scoreBest(int n);
-
   /// mathHeading
   ///
   /// In en, this message translates to:
