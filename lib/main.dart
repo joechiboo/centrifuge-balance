@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'haptics.dart';
+import 'l10n/app_localizations.dart';
 import 'screens/game_screen.dart';
 import 'theme/palette.dart';
 
@@ -22,13 +23,16 @@ class CentrifugeApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: '離心機配平',
+      onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
       debugShowCheckedModeBanner: false,
       theme: Palette.light.toTheme(),
       darkTheme: Palette.dark.toTheme(),
-      locale: const Locale('zh', 'TW'),
-      supportedLocales: const [Locale('zh', 'TW'), Locale('en')],
-      localizationsDelegates: GlobalMaterialLocalizations.delegates,
+      // English first: any non-Chinese system language falls back to it.
+      supportedLocales: const [Locale('en'), Locale('zh')],
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        ...GlobalMaterialLocalizations.delegates,
+      ],
       home: const GameScreen(),
     );
   }
