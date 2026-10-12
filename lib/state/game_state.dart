@@ -4,11 +4,32 @@ import '../data/levels.dart';
 import '../logic/balance.dart';
 import 'progress_store.dart';
 
-enum GameMode { levels, free }
+export 'progress_store.dart' show Campaign;
+
+enum GameMode { levels, lab, free }
 
 enum RunState { idle, spinning, balanced, unbalanced }
 
-enum MessageKind { neutral, ok, bad }
+/// What the message strip should say. The UI turns these into localized
+/// text; the state never holds user-facing strings.
+enum GameMessage {
+  none,
+
+  /// Classic: the level allows only [GameState.k] tubes.
+  tooManyTubes,
+
+  /// Lab: the spare budget is used up.
+  noSparesLeft,
+
+  /// First hint stage: the level's text hint.
+  hintText,
+
+  /// Second hint stage: the dashed layout is drawn; text repeats the hint.
+  hintGuide,
+
+  /// Two failed launches: the hint is offered unasked.
+  hintAfterFails,
+}
 
 const int minHoles = 2;
 const int maxHoles = 30;
@@ -22,22 +43,30 @@ class GameState extends ChangeNotifier {
 
   GameMode mode = GameMode.levels;
   int levelIndex = 0;
+  int labIndex = 0;
   int n = 6;
   int k = 2;
   Set<int> fixed = {};
   Set<int> broken = {};
   Set<int> placed = {};
   Set<int> done = {};
+  Set<int> labDone = {};
   int fails = 0;
   int hintStage = 0;
   bool busy = false;
   RunState run = RunState.idle;
   Vec2? imbalance;
-  String message = '';
-  MessageKind messageKind = MessageKind.neutral;
+  GameMessage message = GameMessage.none;
   bool showNext = false;
+  String nickname = '';
+  String? licensedAt;
+  String? labLicensedAt;
 
-  /// Live rpm readout during a spin. Separate notifier so the LCD can
+  /// Set by [completeSpin] when that clear earned the licence or the lab
+  /// endorsement, so the UI can open the certificate. Cleared by [load].
+  bool justLicensed = false;
+
+  /// Live rpm readout during a spin. Separate notifier so the hub can
   /// repaint at animation rate without rebuilding the whole screen.
   final ValueNotifier<int> rpm = ValueNotifier<int>(0);
 
@@ -45,9 +74,9 @@ class GameState extends ChangeNotifier {
   ProgressStore? _store;
 
   /// Restore records and the last session from disk: cleared levels, best
-  /// attempt counts, and exactly where the player was (mode, level, tubes
-  /// already placed). With no saved session, start at the first unfinished
-  /// level.
+  /// attempt counts, licence, and exactly where the player was (mode, level,
+  /// tubes already placed). With no saved session, start at the first
+  /// unfinished classic level.
   Future<void> init() async {
     ProgressStore? store;
     try {
@@ -59,19 +88,33 @@ class GameState extends ChangeNotifier {
       load();
       return;
     }
-    done = store.done.where((i) => i < levels.length).toSet();
+    done = store.done(Campaign.classic).where((i) => i < levels.length).toSet();
+    labDone = store
+        .done(Campaign.lab)
+        .where((i) => i < labLevels.length)
+        .toSet();
+    nickname = store.nickname;
+    licensedAt = store.licensedAt;
+    labLicensedAt = store.labLicensedAt;
     final savedMode = store.mode;
     final savedLevel = store.level;
+    final savedLab = store.labLevel;
     final savedFreeN = store.freeN;
     final savedPlaced = store.placed;
     final savedFails = store.fails;
 
-    mode = savedMode == 'free' ? GameMode.free : GameMode.levels;
+    mode = switch (savedMode) {
+      'free' => GameMode.free,
+      'lab' => GameMode.lab,
+      _ => GameMode.levels,
+    };
     _freeN = (savedFreeN ?? 12).clamp(minHoles, maxHoles);
     levelIndex =
-        savedLevel != null && savedLevel >= 0 && savedLevel < levels.length
-        ? savedLevel
-        : _firstUnfinished();
+        _validIndex(savedLevel, levels.length) ??
+        _firstUnfinished(done, levels.length);
+    labIndex =
+        _validIndex(savedLab, labLevels.length) ??
+        _firstUnfinished(labDone, labLevels.length);
     // Only now start writing, so a half-read session never clobbers disk.
     _store = store;
     load();
@@ -82,7 +125,7 @@ class GameState extends ChangeNotifier {
           (i) => i >= 0 && i < n && !fixed.contains(i) && !broken.contains(i),
         )
         .toSet();
-    if (!isLevels || fixed.length + valid.length <= k) {
+    if (isFree || fixed.length + valid.length <= k) {
       placed = valid;
       fails = savedFails;
     }
@@ -90,106 +133,115 @@ class GameState extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Fewest launches it took to clear level [i]; null if never cleared.
-  int? bestOf(int i) => _store?.best(i);
+  static int? _validIndex(int? i, int length) =>
+      i != null && i >= 0 && i < length ? i : null;
+
+  static int _firstUnfinished(Set<int> done, int length) {
+    for (var i = 0; i < length; i++) {
+      if (!done.contains(i)) return i;
+    }
+    return 0;
+  }
 
   void _saveSession() {
     _store?.saveSession(
-      mode: isLevels ? 'levels' : 'free',
+      mode: switch (mode) {
+        GameMode.levels => 'levels',
+        GameMode.lab => 'lab',
+        GameMode.free => 'free',
+      },
       level: levelIndex,
+      labLevel: labIndex,
       freeN: _freeN,
       placed: placed,
       fails: fails,
     );
   }
 
-  int _firstUnfinished() {
-    for (var i = 0; i < levels.length; i++) {
-      if (!done.contains(i)) return i;
-    }
-    return 0;
-  }
+  // ---- Campaign helpers -------------------------------------------------
 
-  void _saveDone() {
-    _store?.done = done;
-  }
-
-  Level get level => levels[levelIndex];
-  int get total => fixed.length + placed.length;
   bool get isLevels => mode == GameMode.levels;
-  bool get isLastLevel => levelIndex == levels.length - 1;
+  bool get isLab => mode == GameMode.lab;
+  bool get isFree => mode == GameMode.free;
+
+  /// The campaign being played, or null in free mode.
+  Campaign? get campaign => switch (mode) {
+    GameMode.levels => Campaign.classic,
+    GameMode.lab => Campaign.lab,
+    GameMode.free => null,
+  };
+
+  List<Level> get campaignLevels => isLab ? labLevels : levels;
+  Set<int> get campaignDone => isLab ? labDone : done;
+  int get index => isLab ? labIndex : levelIndex;
+  set index(int i) => isLab ? labIndex = i : levelIndex = i;
+
+  Level get level => campaignLevels[index];
+  bool get isLastLevel => index == campaignLevels.length - 1;
+
+  /// Fewest launches it took to clear level [i] of [c]; null if never.
+  int? bestOf(Campaign c, int i) => _store?.best(c, i);
+
+  // ---- Derived state ----------------------------------------------------
+
+  int get total => fixed.length + placed.length;
   Iterable<int> get occupied => fixed.followedBy(placed);
 
-  bool get canLaunch =>
-      !busy && run != RunState.balanced && (isLevels ? total == k : total > 0);
-  bool get canClear => !busy && (placed.isNotEmpty || hintStage > 0);
-  bool get canHint => !busy && isLevels && run != RunState.balanced;
+  /// Lab: balance tubes still available.
+  int get sparesLeft => isLab ? level.spares - placed.length : 0;
 
-  String get launchLabel => isLevels && total < k ? '還差 ${k - total} 支' : '啟動';
+  bool get canLaunch =>
+      !busy &&
+      run != RunState.balanced &&
+      switch (mode) {
+        GameMode.levels => total == k,
+        GameMode.lab => placed.isNotEmpty,
+        GameMode.free => total > 0,
+      };
+  bool get canClear => !busy && (placed.isNotEmpty || hintStage > 0);
+  bool get canHint => !busy && !isFree && run != RunState.balanced;
+
+  /// Classic only: tubes still missing before launch is allowed.
+  int get missing => isLevels ? k - total : 0;
 
   /// Celebration over the rotor once the spin has coasted to a stop.
   bool get showCelebration => run == RunState.balanced;
 
-  /// Levels advance by themselves after the celebration; free mode waits.
-  bool get autoAdvance => isLevels && !isLastLevel;
+  /// Campaign levels advance by themselves after the celebration; the last
+  /// one and free mode wait for a tap.
+  bool get autoAdvance => !isFree && !isLastLevel;
 
   /// Launches so far on this layout, counting the one that just succeeded.
   int get attempts => fails + 1;
 
-  /// Text drawn in the rotor hub while idle: tubes placed over the goal.
-  String get hubLabel => isLevels ? '$total/$k' : '$total';
+  bool get licensed => licensedAt != null;
+  bool get labEndorsed => labLicensedAt != null;
 
-  /// What a tap on the celebration does.
-  void acknowledge() {
-    if (!showCelebration) return;
-    if (isLevels) {
-      isLastLevel ? setMode(GameMode.free) : nextLevel();
-    } else {
-      _resetRun();
-      _flash('');
-      notifyListeners();
+  /// Total launches across all best scores, for the licence.
+  int get totalBestAttempts {
+    var sum = 0;
+    for (var i = 0; i < levels.length; i++) {
+      sum += bestOf(Campaign.classic, i) ?? 0;
     }
+    return sum;
   }
 
-  String get hintLabel => hintStage == 1 ? '看擺法' : '提示';
-  String get countLabel => isLevels ? '試管 $total / $k' : '試管 $total / $n 孔';
-
-  String get stateLabel => switch (run) {
-    RunState.idle => '待機',
-    RunState.spinning => '加速中',
-    RunState.balanced => '運轉平穩',
-    RunState.unbalanced => '震動過大，已停機',
-  };
-
-  String get taskTitle =>
-      isLevels ? '第 ${levelIndex + 1} 關 · 放 $k 支' : '自由模式 · $n 孔';
-
-  /// Only the constraints worth a glance; empty when there are none.
-  String get taskSub {
-    if (!isLevels) return '';
-    return [
-      if (fixed.isNotEmpty) '${fixed.length} 支已固定',
-      if (broken.isNotEmpty) '${broken.length} 孔故障',
-    ].join('，');
+  int get firstTryClears {
+    var c = 0;
+    for (var i = 0; i < levels.length; i++) {
+      if (bestOf(Campaign.classic, i) == 1) c++;
+    }
+    return c;
   }
-
-  /// Counts that balance on the current rotor, for the info sheet.
-  String get balanceableText {
-    final b = balanceableCounts(n);
-    return b.isEmpty ? '只有放滿' : '${b.join('、')}，以及放滿';
-  }
-
-  String get primeFactorText => primeFactors(n).join('、');
 
   /// Dashed guide shapes to draw, or empty when the player has not asked.
   List<List<int>> get guide =>
-      isLevels && hintStage == 2 ? level.guide : const [];
+      !isFree && hintStage == 2 ? level.guide : const [];
 
-  void _flash(String text, [MessageKind kind = MessageKind.neutral]) {
-    message = text;
-    messageKind = kind;
-    showNext = false;
-  }
+  List<int> balanceable() => balanceableCounts(n);
+  List<int> factors() => primeFactors(n);
+
+  // ---- Actions ----------------------------------------------------------
 
   void _resetRun() {
     run = RunState.idle;
@@ -203,20 +255,21 @@ class GameState extends ChangeNotifier {
     fails = 0;
     busy = false;
     hintStage = 0;
+    justLicensed = false;
     _resetRun();
-    if (isLevels) {
-      final l = level;
-      n = l.n;
-      k = l.k;
-      fixed = l.fixed.toSet();
-      broken = l.broken.toSet();
-    } else {
+    if (isFree) {
       n = _freeN;
       k = n;
       fixed = {};
       broken = {};
+    } else {
+      final l = level;
+      n = l.n;
+      k = isLab ? l.fixed.length + l.spares : l.k;
+      fixed = l.fixed.toSet();
+      broken = l.broken.toSet();
     }
-    _flash('');
+    message = GameMessage.none;
     _saveSession();
     notifyListeners();
   }
@@ -227,8 +280,8 @@ class GameState extends ChangeNotifier {
     if (placed.contains(i)) {
       placed = placed.difference({i});
     } else {
-      if (isLevels && total >= k) {
-        _flash('只有 $k 支試管，先拿走一支。');
+      if (!isFree && total >= k) {
+        message = isLab ? GameMessage.noSparesLeft : GameMessage.tooManyTubes;
         notifyListeners();
         return;
       }
@@ -245,7 +298,7 @@ class GameState extends ChangeNotifier {
     hintStage = 0;
     fails = 0;
     _resetRun();
-    _flash('');
+    message = GameMessage.none;
     _saveSession();
     notifyListeners();
   }
@@ -254,28 +307,30 @@ class GameState extends ChangeNotifier {
     if (!canHint) return;
     if (hintStage == 0) {
       hintStage = 1;
-      _flash('提示：${level.hint}');
+      message = GameMessage.hintText;
     } else {
       hintStage = 2;
-      _flash('虛線是其中一種擺法，照著把試管放在虛線的頂點上。${level.hint}');
+      message = GameMessage.hintGuide;
     }
     notifyListeners();
   }
 
   /// Cleared levels and the current one can be revisited; nothing ahead.
   bool canVisit(int i) =>
-      i >= 0 && i < levels.length && (i <= levelIndex || done.contains(i));
+      !isFree &&
+      i >= 0 &&
+      i < campaignLevels.length &&
+      (i <= index || campaignDone.contains(i));
 
   void selectLevel(int i) {
     if (busy || !canVisit(i)) return;
-    mode = GameMode.levels;
-    levelIndex = i;
+    index = i;
     load();
   }
 
   void nextLevel() {
-    if (busy || isLastLevel) return;
-    levelIndex++;
+    if (busy || isFree || isLastLevel) return;
+    index = index + 1;
     load();
   }
 
@@ -286,12 +341,39 @@ class GameState extends ChangeNotifier {
     load();
   }
 
+  /// What a tap on the celebration does. Returns true when the caller
+  /// should show the licence instead of staying on the board.
+  bool acknowledge() {
+    if (!showCelebration) return false;
+    if (justLicensed) {
+      justLicensed = false;
+      _resetRun();
+      message = GameMessage.none;
+      notifyListeners();
+      return true;
+    }
+    if (isFree || isLastLevel) {
+      _resetRun();
+      message = GameMessage.none;
+      notifyListeners();
+    } else {
+      nextLevel();
+    }
+    return false;
+  }
+
   void changeHoles(int delta) {
-    if (busy || !mode.isFree) return;
+    if (busy || !isFree) return;
     final next = (_freeN + delta).clamp(minHoles, maxHoles);
     if (next == _freeN) return;
     _freeN = next;
     load();
+  }
+
+  void setNickname(String v) {
+    nickname = v.trim();
+    _store?.nickname = nickname;
+    notifyListeners();
   }
 
   /// Returns true when the rotor should spin up. The rotor widget then
@@ -303,16 +385,16 @@ class GameState extends ChangeNotifier {
       busy = true;
       imbalance = null;
       run = RunState.spinning;
-      _flash('');
+      message = GameMessage.none;
       notifyListeners();
       return true;
     }
     fails++;
     run = RunState.unbalanced;
     imbalance = v;
-    var t = '重心偏向箭頭那一側。';
-    if (isLevels && fails >= 2) t += '\n提示：${level.hint}';
-    _flash(t, MessageKind.bad);
+    message = !isFree && fails >= 2 && hintStage == 0
+        ? GameMessage.hintAfterFails
+        : GameMessage.none;
     _saveSession();
     notifyListeners();
     return false;
@@ -322,19 +404,30 @@ class GameState extends ChangeNotifier {
     busy = false;
     rpm.value = 0;
     run = RunState.balanced;
-    if (isLevels) {
-      done.add(levelIndex);
-      _saveDone();
-      final prev = bestOf(levelIndex);
-      if (prev == null || attempts < prev) {
-        _store?.setBest(levelIndex, attempts);
-      }
-      _flash('');
+    message = GameMessage.none;
+    final c = campaign;
+    if (c != null) {
+      final all = campaignDone..add(index);
+      _store?.setDone(c, all);
+      final prev = bestOf(c, index);
+      if (prev == null || attempts < prev) _store?.setBest(c, index, attempts);
       showNext = !isLastLevel;
-    } else {
-      _flash('');
+      if (all.length == campaignLevels.length) _award(c);
     }
     notifyListeners();
+  }
+
+  void _award(Campaign c) {
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+    if (c == Campaign.classic && licensedAt == null) {
+      licensedAt = today;
+      _store?.licensedAt = today;
+      justLicensed = true;
+    } else if (c == Campaign.lab && labLicensedAt == null) {
+      labLicensedAt = today;
+      _store?.labLicensedAt = today;
+      justLicensed = licensed;
+    }
   }
 
   @override
@@ -342,8 +435,4 @@ class GameState extends ChangeNotifier {
     rpm.dispose();
     super.dispose();
   }
-}
-
-extension on GameMode {
-  bool get isFree => this == GameMode.free;
 }

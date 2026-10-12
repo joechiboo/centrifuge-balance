@@ -3,12 +3,14 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../data/levels.dart';
 import '../haptics.dart';
+import '../l10n/app_localizations.dart';
+import '../l10n/hints.dart';
 import '../state/game_state.dart';
 import '../theme/palette.dart';
 import '../widgets/rotor.dart';
 import 'info_sheet.dart';
+import 'license_screen.dart';
 
 class GameScreen extends StatefulWidget {
   const GameScreen({super.key});
@@ -32,8 +34,17 @@ class _GameScreenState extends State<GameScreen> {
     super.dispose();
   }
 
+  void _openLicense() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => LicenseScreen(state: state, celebrate: true),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Scaffold(
       body: SafeArea(
         child: ListenableBuilder(
@@ -60,10 +71,10 @@ class _GameScreenState extends State<GameScreen> {
                             children: [
                               _Header(state: state),
                               const SizedBox(height: 14),
-                              if (state.isLevels)
-                                _Progress(state: state)
+                              if (state.isFree)
+                                _HoleStepper(state: state)
                               else
-                                _HoleStepper(state: state),
+                                _Progress(state: state),
                               const SizedBox(height: 18),
                               _Task(state: state),
                               const SizedBox(height: 12),
@@ -75,16 +86,22 @@ class _GameScreenState extends State<GameScreen> {
                                   child: Stack(
                                     alignment: Alignment.center,
                                     children: [
-                                      RotorView(state: state),
+                                      RotorView(
+                                        state: state,
+                                        hubLabel: _hubLabel(state),
+                                      ),
                                       if (state.showCelebration)
                                         Positioned.fill(
-                                          child: _Celebration(state: state),
+                                          child: _Celebration(
+                                            state: state,
+                                            onLicense: _openLicense,
+                                          ),
                                         ),
                                     ],
                                   ),
                                 ),
                               ),
-                              _Message(state: state),
+                              _Message(state: state, l: l),
                             ],
                           ),
                         );
@@ -100,6 +117,13 @@ class _GameScreenState extends State<GameScreen> {
       ),
     );
   }
+
+  /// Hub readout: tubes over goal, spares used over budget, or a count.
+  static String _hubLabel(GameState s) => switch (s.mode) {
+    GameMode.levels => '${s.total}/${s.k}',
+    GameMode.lab => '${s.placed.length}/${s.level.spares}',
+    GameMode.free => '${s.total}',
+  };
 }
 
 class _Header extends StatelessWidget {
@@ -109,22 +133,41 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = Palette.of(context);
+    final l = AppLocalizations.of(context);
     return Row(
       children: [
-        const Expanded(
-          child: Text(
-            '離心機配平',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.2,
+        Expanded(
+          child: Align(
+            alignment: Alignment.centerLeft,
+            // Scales down rather than truncating when the three-pill toggle
+            // leaves little room (English title on a narrow phone).
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                l.appTitle,
+                maxLines: 1,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.8,
+                ),
+              ),
             ),
           ),
         ),
         _ModeToggle(state: state),
-        const SizedBox(width: 4),
+        if (state.licensed)
+          IconButton(
+            tooltip: l.licenseTooltip,
+            icon: Icon(Icons.workspace_premium_rounded, color: p.fixed),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => LicenseScreen(state: state),
+              ),
+            ),
+          ),
         IconButton(
-          tooltip: '玩法與說明',
+          tooltip: l.infoTooltip,
           icon: Icon(Icons.info_outline, color: p.muted),
           onPressed: () => showInfoSheet(context, state),
         ),
@@ -133,7 +176,7 @@ class _Header extends StatelessWidget {
   }
 }
 
-/// Two-pill mode switch; sized by its own text so CJK labels never wrap.
+/// Three-pill mode switch; sized by its own text so CJK labels never wrap.
 class _ModeToggle extends StatelessWidget {
   const _ModeToggle({required this.state});
   final GameState state;
@@ -141,6 +184,7 @@ class _ModeToggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = Palette.of(context);
+    final l = AppLocalizations.of(context);
     Widget pill(GameMode m, String label) {
       final on = state.mode == m;
       return GestureDetector(
@@ -151,7 +195,7 @@ class _ModeToggle extends StatelessWidget {
           label: label,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 150),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
             decoration: BoxDecoration(
               color: on ? p.ink : Colors.transparent,
               borderRadius: BorderRadius.circular(999),
@@ -160,7 +204,7 @@ class _ModeToggle extends StatelessWidget {
               label,
               softWrap: false,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 13,
                 fontWeight: FontWeight.w600,
                 color: on ? p.bg : p.muted,
               ),
@@ -178,7 +222,11 @@ class _ModeToggle extends StatelessWidget {
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
-        children: [pill(GameMode.levels, '關卡'), pill(GameMode.free, '自由')],
+        children: [
+          pill(GameMode.levels, l.modeLevels),
+          pill(GameMode.lab, l.modeLab),
+          pill(GameMode.free, l.modeFree),
+        ],
       ),
     );
   }
@@ -193,10 +241,12 @@ class _Progress extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = Palette.of(context);
-    final cleared = state.done.length;
+    final l = AppLocalizations.of(context);
+    final total = state.campaignLevels.length;
+    final cleared = state.campaignDone.length;
     return Row(
       children: [
-        for (var i = 0; i < levels.length; i++) ...[
+        for (var i = 0; i < total; i++) ...[
           if (i > 0) const SizedBox(width: 4),
           Expanded(
             child: _Segment(index: i, state: state, palette: p),
@@ -204,7 +254,7 @@ class _Progress extends StatelessWidget {
         ],
         const SizedBox(width: 12),
         Text(
-          '$cleared / ${levels.length}',
+          l.progress(cleared, total),
           style: TextStyle(
             color: p.muted,
             fontSize: 13,
@@ -230,9 +280,11 @@ class _Segment extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = palette;
-    final current = index == state.levelIndex;
-    final done = state.done.contains(index);
+    final l = AppLocalizations.of(context);
+    final current = index == state.index;
+    final done = state.campaignDone.contains(index);
     final tappable = !current && state.canVisit(index) && !state.busy;
+    final accent = state.isLab ? p.spare : p.cap;
     final bar = AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       height: current ? 10 : 6,
@@ -241,14 +293,22 @@ class _Segment extends StatelessWidget {
         color: done
             ? p.ok
             : current
-            ? p.cap
+            ? accent
             : p.line,
       ),
     );
+    final title = state.isLab ? l.labTitle(index + 1) : l.levelTitle(index + 1);
     return Semantics(
       button: tappable,
       selected: current,
-      label: '第 ${index + 1} 關${done ? '，已過關' : ''}${current ? '，目前' : ''}',
+      label: l.segmentLabel(
+        title,
+        done
+            ? l.statusCleared
+            : current
+            ? l.statusCurrent
+            : '',
+      ),
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: tappable
@@ -271,6 +331,7 @@ class _HoleStepper extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = Palette.of(context);
+    final l = AppLocalizations.of(context);
     Widget btn(IconData icon, int delta, bool enabled, String label) =>
         IconButton.outlined(
           tooltip: label,
@@ -284,21 +345,23 @@ class _HoleStepper extends StatelessWidget {
         );
     return Row(
       children: [
-        btn(Icons.remove, -1, state.n > minHoles, '減少孔數'),
+        btn(Icons.remove, -1, state.n > minHoles, l.fewerHoles),
         SizedBox(
-          width: 88,
+          width: 96,
           child: Text(
-            '${state.n} 孔',
+            l.holes(state.n),
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
           ),
         ),
-        btn(Icons.add, 1, state.n < maxHoles, '增加孔數'),
+        btn(Icons.add, 1, state.n < maxHoles, l.moreHoles),
       ],
     );
   }
 }
 
+/// Level title plus, in lab mode, the spare-tube budget as a chip. Fixed
+/// tubes and broken holes are visible on the rotor itself.
 class _Task extends StatelessWidget {
   const _Task({required this.state});
   final GameState state;
@@ -306,17 +369,42 @@ class _Task extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = Palette.of(context);
+    final l = AppLocalizations.of(context);
+    final title = switch (state.mode) {
+      GameMode.levels => l.levelTitle(state.index + 1),
+      GameMode.lab => l.labTitle(state.index + 1),
+      GameMode.free => l.freeTitle(state.n),
+    };
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.baseline,
-      textBaseline: TextBaseline.alphabetic,
       children: [
         Text(
-          state.taskTitle,
+          title,
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
         ),
-        if (state.taskSub.isNotEmpty) ...[
+        if (state.isLab) ...[
           const SizedBox(width: 10),
-          Text(state.taskSub, style: TextStyle(fontSize: 14, color: p.muted)),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+            decoration: BoxDecoration(
+              color: p.spare.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.water_drop_rounded, size: 14, color: p.spare),
+                const SizedBox(width: 4),
+                Text(
+                  l.sparesChip(state.level.spares),
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: p.ink,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ],
     );
@@ -325,21 +413,34 @@ class _Task extends StatelessWidget {
 
 /// Only appears when there is something to say; collapses otherwise.
 class _Message extends StatelessWidget {
-  const _Message({required this.state});
+  const _Message({required this.state, required this.l});
   final GameState state;
+  final AppLocalizations l;
+
+  String? _text() {
+    final c = state.campaign;
+    final hint = c == null ? '' : hintFor(l, c, state.index);
+    return switch (state.message) {
+      GameMessage.none => null,
+      GameMessage.tooManyTubes => l.msgTooMany(state.k),
+      GameMessage.noSparesLeft => l.msgNoSpares,
+      GameMessage.hintText || GameMessage.hintAfterFails => hint,
+      GameMessage.hintGuide => '${l.msgGuide} $hint',
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
     final p = Palette.of(context);
-    final accent = switch (state.messageKind) {
-      MessageKind.ok => p.ok,
-      MessageKind.bad => p.bad,
-      MessageKind.neutral => p.cap,
-    };
+    final text = _text();
+    final warning =
+        state.message == GameMessage.tooManyTubes ||
+        state.message == GameMessage.noSparesLeft;
+    final accent = warning ? p.bad : p.cap;
     return AnimatedSize(
       duration: const Duration(milliseconds: 200),
       alignment: Alignment.topCenter,
-      child: state.message.isEmpty
+      child: text == null
           ? const SizedBox(width: double.infinity)
           : Container(
               margin: const EdgeInsets.only(top: 12),
@@ -350,9 +451,28 @@ class _Message extends StatelessWidget {
               ),
               child: Semantics(
                 liveRegion: true,
-                child: Text(
-                  state.message,
-                  style: TextStyle(fontSize: 15, color: p.ink, height: 1.5),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      warning
+                          ? Icons.error_outline_rounded
+                          : Icons.lightbulb_outline_rounded,
+                      size: 18,
+                      color: accent,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        text,
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: p.ink,
+                          height: 1.5,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -361,10 +481,13 @@ class _Message extends StatelessWidget {
 }
 
 /// Game-style clear: a check bursts out of the hub, the level advances on
-/// its own a moment later, or at once on a tap. Free mode waits for the tap.
+/// its own a moment later, or at once on a tap. The last level of a
+/// campaign and free mode wait for the tap; a clear that earns the licence
+/// opens it.
 class _Celebration extends StatefulWidget {
-  const _Celebration({required this.state});
+  const _Celebration({required this.state, required this.onLicense});
   final GameState state;
+  final VoidCallback onLicense;
 
   @override
   State<_Celebration> createState() => _CelebrationState();
@@ -389,7 +512,7 @@ class _CelebrationState extends State<_Celebration>
   void _go() {
     _auto?.cancel();
     _auto = null;
-    widget.state.acknowledge();
+    if (widget.state.acknowledge()) widget.onLicense();
   }
 
   @override
@@ -402,21 +525,28 @@ class _CelebrationState extends State<_Celebration>
   @override
   Widget build(BuildContext context) {
     final p = Palette.of(context);
+    final l = AppLocalizations.of(context);
     final s = widget.state;
-    final last = s.isLevels && s.isLastLevel;
-    final title = last ? '全部過關！' : '配平成功';
+    final campaign = s.campaign;
+    final last = campaign != null && s.isLastLevel;
+    final licence = s.justLicensed;
+    final title = licence
+        ? (campaign == Campaign.lab ? l.endorsementEarned : l.licenseEarned)
+        : last
+        ? l.celebrateAll
+        : l.celebrate;
     final String sub;
-    if (!s.isLevels) {
-      sub = '${s.n} 孔放 ${s.total} 支 · 點一下繼續';
+    if (campaign == null) {
+      sub = l.freeResult(s.n, s.total);
     } else {
-      final best = s.bestOf(s.levelIndex);
-      final score = s.attempts == 1
-          ? '一次就過'
+      final best = s.bestOf(campaign, s.index);
+      sub = s.attempts == 1
+          ? l.firstTry
           : best != null && best < s.attempts
-          ? '第 ${s.attempts} 次成功 · 最佳 $best 次'
-          : '第 ${s.attempts} 次成功';
-      sub = '$score · ${last ? '點一下進入自由模式' : '點一下繼續'}';
+          ? '${l.attempts(s.attempts)} · ${l.best(best)}'
+          : l.attempts(s.attempts);
     }
+    final firstTry = campaign != null && s.attempts == 1;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: _go,
@@ -466,16 +596,24 @@ class _CelebrationState extends State<_Celebration>
                       height: 96,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: p.ok,
+                        color: licence ? p.fixed : p.ok,
                         boxShadow: [
                           BoxShadow(
-                            color: p.ok.withValues(alpha: 0.45),
+                            color: (licence ? p.fixed : p.ok).withValues(
+                              alpha: 0.45,
+                            ),
                             blurRadius: 30,
                             spreadRadius: 4,
                           ),
                         ],
                       ),
-                      child: Icon(Icons.check_rounded, color: p.bg, size: 60),
+                      child: Icon(
+                        licence
+                            ? Icons.workspace_premium_rounded
+                            : Icons.check_rounded,
+                        color: p.bg,
+                        size: 60,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -493,9 +631,31 @@ class _CelebrationState extends State<_Celebration>
                           ),
                         ),
                         const SizedBox(height: 4),
-                        Text(
-                          sub,
-                          style: TextStyle(fontSize: 13, color: p.muted),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (firstTry) ...[
+                              Icon(
+                                Icons.star_rounded,
+                                size: 16,
+                                color: p.fixed,
+                              ),
+                              const SizedBox(width: 3),
+                            ],
+                            Text(
+                              sub,
+                              style: TextStyle(fontSize: 13, color: p.muted),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        // Where a tap goes next.
+                        Icon(
+                          licence
+                              ? Icons.badge_outlined
+                              : Icons.arrow_forward_rounded,
+                          size: 22,
+                          color: p.muted,
                         ),
                       ],
                     ),
@@ -517,6 +677,7 @@ class _ActionBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 18),
       child: Row(
@@ -526,15 +687,15 @@ class _ActionBar extends StatelessWidget {
             icon: state.hintStage == 1
                 ? Icons.auto_awesome_rounded
                 : Icons.lightbulb_outline_rounded,
-            label: state.hintLabel,
+            label: state.hintStage == 1 ? l.hintBtnShow : l.hintBtn,
             enabled: state.canHint && state.hintStage < 2,
-            visible: state.isLevels,
+            visible: !state.isFree,
             onTap: state.showHint,
           ),
           _StartButton(state: state),
           _RoundTool(
             icon: Icons.replay_rounded,
-            label: '清空',
+            label: l.clearBtn,
             enabled: state.canClear,
             visible: true,
             onTap: state.clear,
@@ -553,13 +714,19 @@ class _StartButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = Palette.of(context);
+    final l = AppLocalizations.of(context);
     final on = state.canLaunch;
     final spinning = state.run == RunState.spinning;
-    final label = spinning ? '運轉中' : '啟動';
+    final label = spinning ? l.spinning : l.startBtn;
+    final semantics = on
+        ? l.startBtn
+        : state.missing > 0
+        ? l.missing(state.missing)
+        : l.startBtn;
     return Semantics(
       button: true,
       enabled: on,
-      label: on ? '啟動' : state.launchLabel,
+      label: semantics,
       child: GestureDetector(
         onTap: on
             ? () {
@@ -600,9 +767,9 @@ class _StartButton extends StatelessWidget {
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: 12,
                   fontWeight: FontWeight.w800,
-                  letterSpacing: 2,
+                  letterSpacing: 1.5,
                   color: on ? p.bg : p.muted,
                 ),
               ),

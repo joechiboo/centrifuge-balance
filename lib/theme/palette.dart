@@ -17,6 +17,8 @@ class Palette {
     required this.capHi,
     required this.fixed,
     required this.fixedHi,
+    required this.spare,
+    required this.spareHi,
     required this.ok,
     required this.bad,
     required this.lcd,
@@ -26,7 +28,7 @@ class Palette {
 
   final Color bg, panel, ink, muted, line;
   final Color steelHi, steelLo, well, wellRing;
-  final Color cap, capHi, fixed, fixedHi;
+  final Color cap, capHi, fixed, fixedHi, spare, spareHi;
   final Color ok, bad, lcd, lcdFg, lcdBad;
 
   static const light = Palette._(
@@ -43,6 +45,8 @@ class Palette {
     capHi: Color(0xFFB79CF0),
     fixed: Color(0xFFC08A1E),
     fixedHi: Color(0xFFF0CD7A),
+    spare: Color(0xFF3F8FD2),
+    spareHi: Color(0xFFBFE3FF),
     ok: Color(0xFF157F5B),
     bad: Color(0xFFC2372E),
     lcd: Color(0xFF10202B),
@@ -64,6 +68,8 @@ class Palette {
     capHi: Color(0xFFD2C0FF),
     fixed: Color(0xFFD6A23A),
     fixedHi: Color(0xFFFFE2A0),
+    spare: Color(0xFF5FA8E8),
+    spareHi: Color(0xFFD6EEFF),
     ok: Color(0xFF4FD0A0),
     bad: Color(0xFFFF7A6E),
     lcd: Color(0xFF070D12),

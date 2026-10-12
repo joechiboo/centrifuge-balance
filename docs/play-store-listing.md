@@ -64,3 +64,26 @@
 截圖是 2026-10-03 在 SM-S9110 上用 adb 拍的。原圖 1080×2340 超過 2:1，Play 不收，所以裁掉狀態列與手勢列後左右補背景色成 9:16。
 
 功能有增減時，記得一起更新這份說明，再同步到 Play Console。
+
+
+## 1.1.0 更新說明（500 字內）
+
+zh-TW：
+
+```
+・新增「實務」模式 10 關：檢體管不能動，只能用有限的備用管配平，跟檢驗室裡的做法一樣
+・10 關全過頒發「醫檢師執照」，可寫上暱稱、分享成圖片；實務 10 關全過加蓋「實務合格」章
+・支援英文介面，跟著系統語言切換
+・畫面文字精簡，提示更短
+・修正 Android 震動回饋太弱的問題
+```
+
+en-US:
+
+```
+• New Lab mode, 10 levels: specimen tubes stay put; balance the rotor with a limited number of spare tubes, the way it is done in a real lab
+• Clear all 10 levels to earn the Medical Technologist Licence; add your name and share it as an image. Clear the 10 lab levels for the Lab endorsement
+• English interface, following the system language
+• Shorter on-screen text and hints
+• Stronger haptic feedback on Android
+```

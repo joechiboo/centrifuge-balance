@@ -1,0 +1,538 @@
+{
+  "@@locale": "en",
+  "appTitle": "Centrifuge Balance",
+  "@appTitle": {
+    "description": "appTitle"
+  },
+  "modeLevels": "Levels",
+  "@modeLevels": {
+    "description": "modeLevels"
+  },
+  "modeLab": "Lab",
+  "@modeLab": {
+    "description": "modeLab"
+  },
+  "modeFree": "Free",
+  "@modeFree": {
+    "description": "modeFree"
+  },
+  "infoTooltip": "About",
+  "@infoTooltip": {
+    "description": "infoTooltip"
+  },
+  "licenseTooltip": "Licence",
+  "@licenseTooltip": {
+    "description": "licenseTooltip"
+  },
+  "levelTitle": "Level {n}",
+  "@levelTitle": {
+    "description": "levelTitle",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "labTitle": "Lab {n}",
+  "@labTitle": {
+    "description": "labTitle",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "freeTitle": "Free · {n} holes",
+  "@freeTitle": {
+    "description": "freeTitle",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "sparesChip": "{n} spare tubes",
+  "@sparesChip": {
+    "description": "sparesChip",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "holes": "{n} holes",
+  "@holes": {
+    "description": "holes",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "fewerHoles": "Fewer holes",
+  "@fewerHoles": {
+    "description": "fewerHoles"
+  },
+  "moreHoles": "More holes",
+  "@moreHoles": {
+    "description": "moreHoles"
+  },
+  "progress": "{done} / {total}",
+  "@progress": {
+    "description": "progress",
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "segmentLabel": "{title}{status}",
+  "@segmentLabel": {
+    "description": "segmentLabel",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "statusCleared": ", cleared",
+  "@statusCleared": {
+    "description": "statusCleared"
+  },
+  "statusCurrent": ", current",
+  "@statusCurrent": {
+    "description": "statusCurrent"
+  },
+  "hintBtn": "Hint",
+  "@hintBtn": {
+    "description": "hintBtn"
+  },
+  "hintBtnShow": "Show",
+  "@hintBtnShow": {
+    "description": "hintBtnShow"
+  },
+  "clearBtn": "Clear",
+  "@clearBtn": {
+    "description": "clearBtn"
+  },
+  "startBtn": "Start",
+  "@startBtn": {
+    "description": "startBtn"
+  },
+  "spinning": "Running",
+  "@spinning": {
+    "description": "spinning"
+  },
+  "missing": "{n} more",
+  "@missing": {
+    "description": "missing",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "msgTooMany": "Only {k} tubes. Remove one first.",
+  "@msgTooMany": {
+    "description": "msgTooMany",
+    "placeholders": {
+      "k": {
+        "type": "int"
+      }
+    }
+  },
+  "msgNoSpares": "No spare tubes left.",
+  "@msgNoSpares": {
+    "description": "msgNoSpares"
+  },
+  "msgGuide": "The dashed shape is one solution.",
+  "@msgGuide": {
+    "description": "msgGuide"
+  },
+  "celebrate": "Balanced",
+  "@celebrate": {
+    "description": "celebrate"
+  },
+  "celebrateAll": "All clear!",
+  "@celebrateAll": {
+    "description": "celebrateAll"
+  },
+  "firstTry": "First try",
+  "@firstTry": {
+    "description": "firstTry"
+  },
+  "attempts": "Done in {n}",
+  "@attempts": {
+    "description": "attempts",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "best": "best {n}",
+  "@best": {
+    "description": "best",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "freeResult": "{t} tubes in {n} holes",
+  "@freeResult": {
+    "description": "freeResult",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      },
+      "t": {
+        "type": "int"
+      }
+    }
+  },
+  "rulesHeading": "How to play",
+  "@rulesHeading": {
+    "description": "rulesHeading"
+  },
+  "rule1": "Tap holes to place tubes, then start.",
+  "@rule1": {
+    "description": "rule1"
+  },
+  "rule2": "Unbalanced? It shakes; the arrow shows the heavy side.",
+  "@rule2": {
+    "description": "rule2"
+  },
+  "rule3": "Lab: specimens stay put; balance with spare tubes.",
+  "@rule3": {
+    "description": "rule3"
+  },
+  "legendHeading": "Legend",
+  "@legendHeading": {
+    "description": "legendHeading"
+  },
+  "legendYours": "Your tube",
+  "@legendYours": {
+    "description": "legendYours"
+  },
+  "legendFixed": "Fixed tube",
+  "@legendFixed": {
+    "description": "legendFixed"
+  },
+  "legendSpecimen": "Specimen",
+  "@legendSpecimen": {
+    "description": "legendSpecimen"
+  },
+  "legendSpare": "Spare tube",
+  "@legendSpare": {
+    "description": "legendSpare"
+  },
+  "legendBroken": "Broken hole",
+  "@legendBroken": {
+    "description": "legendBroken"
+  },
+  "scoresHeading": "Scores",
+  "@scoresHeading": {
+    "description": "scoresHeading"
+  },
+  "scoreCleared": "cleared",
+  "@scoreCleared": {
+    "description": "scoreCleared"
+  },
+  "scoreBest": "best {n}",
+  "@scoreBest": {
+    "description": "scoreBest",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "mathHeading": "The maths",
+  "@mathHeading": {
+    "description": "mathHeading"
+  },
+  "math1": "Each tube is a vector from the centre to its hole; balanced means they sum to zero.",
+  "@math1": {
+    "description": "math1"
+  },
+  "math2": "An n-hole rotor balances k tubes exactly when both k and n−k are sums of n's prime factors.",
+  "@math2": {
+    "description": "math2"
+  },
+  "mathNow": "{n} holes (prime factors {factors}): {counts}.",
+  "@mathNow": {
+    "description": "mathNow",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      },
+      "factors": {
+        "type": "String"
+      },
+      "counts": {
+        "type": "String"
+      }
+    }
+  },
+  "mathOnlyFull": "only a full rotor balances",
+  "@mathOnlyFull": {
+    "description": "mathOnlyFull"
+  },
+  "mathAndFull": "{counts}, and full",
+  "@mathAndFull": {
+    "description": "mathAndFull",
+    "placeholders": {
+      "counts": {
+        "type": "String"
+      }
+    }
+  },
+  "listSeparator": ", ",
+  "@listSeparator": {
+    "description": "listSeparator"
+  },
+  "privacyHeading": "Privacy policy",
+  "@privacyHeading": {
+    "description": "privacyHeading"
+  },
+  "privacyTitle": "Centrifuge Balance Privacy Policy",
+  "@privacyTitle": {
+    "description": "privacyTitle"
+  },
+  "lastUpdated": "Last updated: {date}",
+  "@lastUpdated": {
+    "description": "lastUpdated",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "privacyIntro": "The Centrifuge Balance app (“the App”) is provided by UNION CLINICAL LABORATORY (大安聯合醫事檢驗所).",
+  "@privacyIntro": {
+    "description": "privacyIntro"
+  },
+  "privacy1Title": "We do not collect any personal data",
+  "@privacy1Title": {
+    "description": "privacy1Title"
+  },
+  "privacy1": "The App requires no account, does not connect to the internet, shows no ads, and contains no analytics or tracking tools. No data is shared with any third party.",
+  "@privacy1": {
+    "description": "privacy1"
+  },
+  "privacy2Title": "Data kept only on your device",
+  "@privacy2Title": {
+    "description": "privacy2Title"
+  },
+  "privacy2": "Your level progress, best scores, last game state and the optional nickname you type for the licence are stored only on your device and are never uploaded. Uninstalling the App or clearing its data deletes them.",
+  "@privacy2": {
+    "description": "privacy2"
+  },
+  "privacy3Title": "Permissions",
+  "@privacy3Title": {
+    "description": "privacy3Title"
+  },
+  "privacy3": "The App only uses the vibration permission, for haptic feedback during play. Sharing the licence image uses the system share sheet and sends nothing anywhere by itself.",
+  "@privacy3": {
+    "description": "privacy3"
+  },
+  "privacy4Title": "Children",
+  "@privacy4Title": {
+    "description": "privacy4Title"
+  },
+  "privacy4": "The App is suitable for all ages and collects no data from children.",
+  "@privacy4": {
+    "description": "privacy4"
+  },
+  "privacy5Title": "Changes",
+  "@privacy5Title": {
+    "description": "privacy5Title"
+  },
+  "privacy5": "If we add any feature that affects how data is used (for example, ads), we will update this policy first and mention it in the App's release notes.",
+  "@privacy5": {
+    "description": "privacy5"
+  },
+  "contactHeading": "Contact",
+  "@contactHeading": {
+    "description": "contactHeading"
+  },
+  "contactBlock": "UNION CLINICAL LABORATORY, IT Office\nNo. 33, Ln. 151, Sec. 2, Fuxing S. Rd., Da’an Dist., Taipei City, Taiwan\nPhone: 02-2704-9977\nEmail: SUPPORT@ucl.com.tw",
+  "@contactBlock": {
+    "description": "contactBlock"
+  },
+  "webVersion": "Web version",
+  "@webVersion": {
+    "description": "webVersion"
+  },
+  "licenseTitle": "Medical Technologist Licence",
+  "@licenseTitle": {
+    "description": "licenseTitle"
+  },
+  "licenseSubtitle": "Centrifuge Balance · Certificate of Competence",
+  "@licenseSubtitle": {
+    "description": "licenseSubtitle"
+  },
+  "holder": "Holder",
+  "@holder": {
+    "description": "holder"
+  },
+  "holderUnnamed": "Unnamed",
+  "@holderUnnamed": {
+    "description": "holderUnnamed"
+  },
+  "issued": "Issued",
+  "@issued": {
+    "description": "issued"
+  },
+  "licenseNo": "Licence no.",
+  "@licenseNo": {
+    "description": "licenseNo"
+  },
+  "statLevels": "Levels",
+  "@statLevels": {
+    "description": "statLevels"
+  },
+  "statLaunches": "Launches",
+  "@statLaunches": {
+    "description": "statLaunches"
+  },
+  "statFirstTry": "First-try clears",
+  "@statFirstTry": {
+    "description": "statFirstTry"
+  },
+  "stampLab": "LAB ENDORSED",
+  "@stampLab": {
+    "description": "stampLab"
+  },
+  "labPending": "Clear all 10 lab levels to add the endorsement.",
+  "@labPending": {
+    "description": "labPending"
+  },
+  "editName": "Edit name",
+  "@editName": {
+    "description": "editName"
+  },
+  "share": "Share",
+  "@share": {
+    "description": "share"
+  },
+  "nicknameHint": "Nickname",
+  "@nicknameHint": {
+    "description": "nicknameHint"
+  },
+  "save": "Save",
+  "@save": {
+    "description": "save"
+  },
+  "cancel": "Cancel",
+  "@cancel": {
+    "description": "cancel"
+  },
+  "shareText": "I earned my Centrifuge Balance Medical Technologist Licence!",
+  "@shareText": {
+    "description": "shareText"
+  },
+  "shareFailed": "Sharing is not available here.",
+  "@shareFailed": {
+    "description": "shareFailed"
+  },
+  "licenseEarned": "Licence earned!",
+  "@licenseEarned": {
+    "description": "licenseEarned"
+  },
+  "endorsementEarned": "Lab endorsement earned!",
+  "@endorsementEarned": {
+    "description": "endorsementEarned"
+  },
+  "viewLicense": "View licence",
+  "@viewLicense": {
+    "description": "viewLicense"
+  },
+  "hintL1": "Put them face to face.",
+  "@hintL1": {
+    "description": "hintL1"
+  },
+  "hintL2": "Every other hole: a triangle.",
+  "@hintL2": {
+    "description": "hintL2"
+  },
+  "hintL3": "Mirror each fixed tube.",
+  "@hintL3": {
+    "description": "hintL3"
+  },
+  "hintL4": "Opposite is broken; make a triangle (every 4th hole).",
+  "@hintL4": {
+    "description": "hintL4"
+  },
+  "hintL5": "5 = 3 + 2: a triangle plus a pair.",
+  "@hintL5": {
+    "description": "hintL5"
+  },
+  "hintL6": "Watch the gaps: balance the 5 empty holes.",
+  "@hintL6": {
+    "description": "hintL6"
+  },
+  "hintL7": "Every other hole: a pentagon.",
+  "@hintL7": {
+    "description": "hintL7"
+  },
+  "hintL8": "Mirror one; make the other a triangle's corner.",
+  "@hintL8": {
+    "description": "hintL8"
+  },
+  "hintL9": "7 = 5 + 2: a pentagon plus a pair.",
+  "@hintL9": {
+    "description": "hintL9"
+  },
+  "hintL10": "Pentagon every 6th hole, plus a pair.",
+  "@hintL10": {
+    "description": "hintL10"
+  },
+  "hintLab1": "Add one opposite.",
+  "@hintLab1": {
+    "description": "hintLab1"
+  },
+  "hintLab2": "Mirror each specimen.",
+  "@hintLab2": {
+    "description": "hintLab2"
+  },
+  "hintLab3": "120° apart: fill the triangle's third corner.",
+  "@hintLab3": {
+    "description": "hintLab3"
+  },
+  "hintLab4": "Opposite is broken: two spares make a triangle.",
+  "@hintLab4": {
+    "description": "hintLab4"
+  },
+  "hintLab5": "The pair already mirrored needs nothing.",
+  "@hintLab5": {
+    "description": "hintLab5"
+  },
+  "hintLab6": "Three spares complete a pentagon.",
+  "@hintLab6": {
+    "description": "hintLab6"
+  },
+  "hintLab7": "One pair plus one triangle: two spares.",
+  "@hintLab7": {
+    "description": "hintLab7"
+  },
+  "hintLab8": "Two pairs plus a triangle.",
+  "@hintLab8": {
+    "description": "hintLab8"
+  },
+  "hintLab9": "15 holes have no opposite: make a pentagon.",
+  "@hintLab9": {
+    "description": "hintLab9"
+  },
+  "hintLab10": "A pentagon missing two corners, plus one mirror.",
+  "@hintLab10": {
+    "description": "hintLab10"
+  }
+}

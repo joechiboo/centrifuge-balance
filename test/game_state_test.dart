@@ -1,3 +1,5 @@
+import 'package:centrifuge_balance/data/levels.dart';
+import 'package:centrifuge_balance/logic/balance.dart';
 import 'package:centrifuge_balance/state/game_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -17,7 +19,7 @@ void main() {
     expect(s.canLaunch, isTrue);
     s.toggle(2);
     expect(s.placed, {0, 1});
-    expect(s.message, contains('只有 2 支'));
+    expect(s.message, GameMessage.tooManyTubes);
   });
 
   test('unbalanced launch sets an imbalance arrow and counts a failure', () {
@@ -28,7 +30,12 @@ void main() {
     expect(s.run, RunState.unbalanced);
     expect(s.imbalance, isNotNull);
     expect(s.fails, 1);
-    expect(s.messageKind, MessageKind.bad);
+    expect(s.message, GameMessage.none);
+    // Second failure offers the hint unasked.
+    s.toggle(1);
+    s.toggle(2);
+    s.launch();
+    expect(s.message, GameMessage.hintAfterFails);
   });
 
   test('balanced launch spins, then completing marks the level done', () async {
@@ -92,7 +99,7 @@ void main() {
     expect(s.launch(), isTrue);
     s.completeSpin();
     expect(s.attempts, 2);
-    expect(s.bestOf(0), 2);
+    expect(s.bestOf(Campaign.classic, 0), 2);
 
     // Replay and do it in one: best improves.
     s.selectLevel(0);
@@ -101,7 +108,7 @@ void main() {
       ..toggle(3);
     s.launch();
     s.completeSpin();
-    expect(s.bestOf(0), 1);
+    expect(s.bestOf(Campaign.classic, 0), 1);
   });
 
   test('only cleared levels and the current one can be revisited', () async {
@@ -133,15 +140,6 @@ void main() {
     expect(s.placed, isEmpty);
   });
 
-  test('init resumes at the first unfinished level', () async {
-    SharedPreferences.setMockInitialValues({
-      'cfg-done': ['0', '1'],
-    });
-    final s = GameState();
-    await s.init();
-    expect(s.levelIndex, 2);
-  });
-
   test('free mode clamps hole count and allows any non-empty launch', () {
     final s = GameState()..setMode(GameMode.free);
     expect(s.n, 12);
@@ -162,11 +160,151 @@ void main() {
     expect(s.guide, isEmpty);
     s.showHint();
     expect(s.hintStage, 1);
+    expect(s.message, GameMessage.hintText);
     expect(s.guide, isEmpty);
     s.showHint();
     expect(s.hintStage, 2);
+    expect(s.message, GameMessage.hintGuide);
     expect(s.guide, isNotEmpty);
     s.clear();
     expect(s.guide, isEmpty);
   });
+
+  group('lab mode', () {
+    test('specimens are fixed and the spare budget is enforced', () {
+      final s = GameState()..setMode(GameMode.lab);
+      expect(s.n, 6);
+      expect(s.fixed, {0});
+      expect(s.level.spares, 1);
+      expect(s.sparesLeft, 1);
+      expect(s.canLaunch, isFalse);
+      s.toggle(0); // specimen: ignored
+      expect(s.placed, isEmpty);
+      s.toggle(2);
+      expect(s.sparesLeft, 0);
+      expect(s.canLaunch, isTrue);
+      s.toggle(4);
+      expect(s.placed, {2});
+      expect(s.message, GameMessage.noSparesLeft);
+    });
+
+    test('lab progress is kept apart from classic progress', () async {
+      final s = GameState();
+      await s.init();
+      s.setMode(GameMode.lab);
+      s.toggle(3);
+      expect(s.launch(), isTrue);
+      s.completeSpin();
+      expect(s.labDone, {0});
+      expect(s.done, isEmpty);
+      expect(s.bestOf(Campaign.lab, 0), 1);
+      expect(s.bestOf(Campaign.classic, 0), isNull);
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getStringList('cfg-done-lab'), ['0']);
+      expect(prefs.getStringList('cfg-done'), isNull);
+
+      // The celebration's tap moves on to lab 2; a relaunch lands there.
+      expect(s.acknowledge(), isFalse);
+      expect(s.labIndex, 1);
+      final again = GameState();
+      await again.init();
+      expect(again.mode, GameMode.lab);
+      expect(again.labIndex, 1);
+      expect(again.labDone, {0});
+    });
+
+    test(
+      'every lab level is solved by its guide and needs the full budget',
+      () {
+        for (var i = 0; i < labLevels.length; i++) {
+          final l = labLevels[i];
+          final spares = l.guide.expand((g) => g).toSet();
+          expect(spares.length, l.spares, reason: 'lab ${i + 1} budget');
+          expect(
+            spares.any(l.fixed.contains),
+            isFalse,
+            reason: 'lab ${i + 1} guide on a specimen',
+          );
+          expect(
+            spares.any(l.broken.contains),
+            isFalse,
+            reason: 'lab ${i + 1} guide on a broken hole',
+          );
+          expect(
+            isBalanced(l.n, [...l.fixed, ...spares]),
+            isTrue,
+            reason: 'lab ${i + 1} guide balances',
+          );
+          // The budget is the puzzle: no smaller set of spares balances it.
+          final free = [
+            for (var h = 0; h < l.n; h++)
+              if (!l.fixed.contains(h) && !l.broken.contains(h)) h,
+          ];
+          for (var m = 0; m < l.spares; m++) {
+            for (final combo in _combinations(free, m)) {
+              expect(
+                isBalanced(l.n, [...l.fixed, ...combo]),
+                isFalse,
+                reason: 'lab ${i + 1} solvable with $m spares: $combo',
+              );
+            }
+          }
+        }
+      },
+    );
+  });
+
+  group('licence', () {
+    test('clearing the tenth classic level awards the licence once', () async {
+      SharedPreferences.setMockInitialValues({
+        'cfg-done': [for (var i = 0; i < 9; i++) '$i'],
+      });
+      final s = GameState();
+      await s.init();
+      expect(s.levelIndex, 9);
+      expect(s.licensed, isFalse);
+      for (final h in levels[9].guide.expand((g) => g)) {
+        s.toggle(h);
+      }
+      expect(s.launch(), isTrue);
+      s.completeSpin();
+      expect(s.licensed, isTrue);
+      expect(s.justLicensed, isTrue);
+      expect(s.acknowledge(), isTrue, reason: 'tap opens the licence');
+      expect(s.justLicensed, isFalse);
+      final issued = s.licensedAt;
+
+      // Replaying does not re-issue.
+      s.selectLevel(9);
+      for (final h in levels[9].guide.expand((g) => g)) {
+        s.toggle(h);
+      }
+      s.launch();
+      s.completeSpin();
+      expect(s.justLicensed, isFalse);
+      expect(s.licensedAt, issued);
+    });
+
+    test('nickname is stored locally', () async {
+      final s = GameState();
+      await s.init();
+      s.setNickname('  小明 ');
+      expect(s.nickname, '小明');
+      final again = GameState();
+      await again.init();
+      expect(again.nickname, '小明');
+    });
+  });
+}
+
+Iterable<List<int>> _combinations(List<int> items, int k) sync* {
+  if (k == 0) {
+    yield const [];
+    return;
+  }
+  for (var i = 0; i <= items.length - k; i++) {
+    for (final rest in _combinations(items.sublist(i + 1), k - 1)) {
+      yield [items[i], ...rest];
+    }
+  }
 }

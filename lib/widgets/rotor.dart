@@ -24,8 +24,12 @@ Offset _holeCentre(int n, int i) {
 /// Top-down rotor: tappable holes, spin-up animation, wobble on failure,
 /// red imbalance arrow, dashed solution guide.
 class RotorView extends StatefulWidget {
-  const RotorView({super.key, required this.state});
+  const RotorView({super.key, required this.state, required this.hubLabel});
   final GameState state;
+
+  /// Text in the hub while idle (tube count or spares left), localized by
+  /// the caller.
+  final String hubLabel;
 
   @override
   State<RotorView> createState() => _RotorViewState();
@@ -135,7 +139,7 @@ class _RotorViewState extends State<RotorView> with TickerProviderStateMixin {
     final s = widget.state;
     final palette = Palette.of(context);
     return Semantics(
-      label: '離心機轉盤俯視圖，${s.n} 孔，${s.countLabel}',
+      label: widget.hubLabel,
       child: AspectRatio(
         aspectRatio: 1,
         child: LayoutBuilder(
@@ -168,7 +172,8 @@ class _RotorViewState extends State<RotorView> with TickerProviderStateMixin {
                     angle: _angle,
                     speed: _speed,
                     density: 0.3 + 0.6 * s.total / s.n,
-                    hubLabel: s.hubLabel,
+                    hubLabel: widget.hubLabel,
+                    spareLook: s.isLab,
                     palette: palette,
                   ),
                   size: Size.square(c.maxWidth),
@@ -194,6 +199,7 @@ class _RotorPainter extends CustomPainter {
     required this.speed,
     required this.density,
     required this.hubLabel,
+    required this.spareLook,
     required this.palette,
   });
 
@@ -203,6 +209,9 @@ class _RotorPainter extends CustomPainter {
   final Vec2? imbalance;
   final double angle, speed, density;
   final String hubLabel;
+
+  /// Lab mode: placed tubes are water-filled balance tubes, not specimens.
+  final bool spareLook;
   final Palette palette;
 
   @override
@@ -304,13 +313,34 @@ class _RotorPainter extends CustomPainter {
       canvas.drawCircle(o, r, wellFill);
       canvas.drawCircle(o, r, wellStroke);
       if (isF || isP) {
-        final cap = isF ? p.fixed : p.cap;
-        final hi = isF ? p.fixedHi : p.capHi;
+        final spare = isP && spareLook;
+        final cap = isF
+            ? p.fixed
+            : spare
+            ? p.spare
+            : p.cap;
+        final hi = isF
+            ? p.fixedHi
+            : spare
+            ? p.spareHi
+            : p.capHi;
         canvas.drawCircle(
           o,
           r * 0.8,
           Paint()..color = cap.withValues(alpha: holeAlpha),
         );
+        if (spare) {
+          // Water line: a lighter crescent across the lower half.
+          canvas.save();
+          canvas.clipPath(
+            Path()..addOval(Rect.fromCircle(center: o, radius: r * 0.8)),
+          );
+          canvas.drawRect(
+            Rect.fromLTWH(o.dx - r, o.dy + r * 0.1, r * 2, r),
+            Paint()..color = p.spareHi.withValues(alpha: 0.45 * holeAlpha),
+          );
+          canvas.restore();
+        }
         canvas.drawCircle(
           o + Offset(-r * 0.25, -r * 0.25),
           r * 0.28,
@@ -379,6 +409,12 @@ class _RotorPainter extends CustomPainter {
       ..strokeWidth = 3
       ..strokeJoin = StrokeJoin.round;
     for (final group in guide) {
+      if (group.length == 1) {
+        // Lab: ring the hole where a spare tube goes.
+        final o = _holeCentre(n, group.single);
+        _dashedCircle(canvas, o, _holeRadius(n) + 5, paint);
+        continue;
+      }
       final path = Path();
       for (var j = 0; j < group.length; j++) {
         final o = _holeCentre(n, group[j]);
@@ -443,6 +479,7 @@ class _RotorPainter extends CustomPainter {
       old.palette != palette ||
       old.guide != guide ||
       old.hubLabel != hubLabel ||
+      old.spareLook != spareLook ||
       !setEquals(old.fixed, fixed) ||
       !setEquals(old.broken, broken) ||
       !setEquals(old.placed, placed);
