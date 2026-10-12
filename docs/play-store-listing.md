@@ -67,6 +67,19 @@
 
 截圖是 2026-10-03 在 SM-S9110 上用 adb 拍的。原圖 1080×2340 超過 2:1，Play 不收，所以裁掉狀態列與手勢列後左右補背景色成 9:16。
 
+### en-US（`docs/store/en-US/`，2026-10-12，v1.1.0）
+
+| 檔案 | 用途 | 規格 |
+|---|---|---|
+| `feature-graphic-1024x500.png` | en-US 主要圖片：轉盤沿用中文版，左半邊改英文標題與標語 | 1024×500 PNG |
+| `screenshots/01-hint.png` ～ `06-free-30-holes.png` | 提示、不平衡、旋轉中、配平成功、實務模式、自由 30 孔 | 1226×2180（9:16） |
+
+圖示沿用 `icon-512.png`。拍法：不改手機系統語言，用 Android 13+ 的單一 App 語言
+`adb shell cmd locale set-app-locales <套件> --user 0 --locales en-US`（拍完用 `--locales ''` 還原）；
+三星的遊戲加速器浮動鈕會被截進去，拍前 `pm disable-user --user 0 com.samsung.android.game.gametools`、拍完 `pm enable`。
+原圖用 `adb exec-out screencap -p > raw.png` 抓，再用 `tool/storeshot.py raw.png out.png` 裁成上面的規格
+（App 是全螢幕繪製，狀態列 100 px、手勢列 60 px 用固定高度切）。
+
 功能有增減時，記得一起更新這份說明，再同步到 Play Console。
 
 
