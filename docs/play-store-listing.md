@@ -75,7 +75,7 @@
 ### App name（30 字內）
 
 ```
-Centrifuge Balance: Tube Puzzle
+Centrifuge Balance Puzzle
 ```
 
 ### Short description（80 字內）
