@@ -137,22 +137,27 @@ class _Header extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: Align(
-            alignment: Alignment.centerLeft,
-            // Scales down rather than truncating when the three-pill toggle
-            // leaves little room (English title on a narrow phone).
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                l.appTitle,
+          child: LayoutBuilder(
+            builder: (context, box) {
+              const style = TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.8,
+              );
+              final natural = (TextPainter(
+                text: TextSpan(text: l.appTitle, style: style),
                 maxLines: 1,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.8,
-                ),
-              ),
-            ),
+                textDirection: Directionality.of(context),
+              )..layout()).width;
+              // The three-pill toggle plus the licence and info buttons leave
+              // little room on a phone. A title squeezed below ~80% reads as
+              // a defect, so hide it instead; the launcher names the app.
+              if (natural > box.maxWidth / 0.8) return const SizedBox.shrink();
+              return Align(
+                alignment: Alignment.centerLeft,
+                child: Text(l.appTitle, maxLines: 1, style: style),
+              );
+            },
           ),
         ),
         _ModeToggle(state: state),

@@ -62,7 +62,7 @@ void main() {
   ) async {
     await pumpApp(tester, const Locale('en', 'US'));
 
-    expect(find.text('Centrifuge Balance'), findsOneWidget);
+    // No title check: the header hides it on a phone-width viewport.
     expect(find.text('Level 1'), findsOneWidget);
     expect(find.text('Start'), findsOneWidget);
     expect(find.text('Hint'), findsOneWidget);
