@@ -2,7 +2,7 @@
 
 上架帳號：大安聯合醫事檢驗所（Google Play 組織帳號）
 套件名稱：`tw.com.ucl.centrifuge_balance`
-定稿：2026-10-03
+定稿：2026-10-12（v1.1.0；v1.0.0 版本見 git 歷史）
 
 ## 應用程式名稱（30 字內）
 
@@ -13,7 +13,7 @@
 ## 簡短說明（80 字內）
 
 ```
-把試管擺進離心機，重量平衡了才能啟動。十個關卡，從對放到五邊形，玩出背後的數學。
+把試管擺進離心機，重量平衡了才能啟動。關卡、實務兩套謎題，破關領醫檢師執照。
 ```
 
 ## 完整說明（4000 字內）
@@ -28,11 +28,15 @@
 ・平衡：轉盤一路加速到 4,000 rpm
 ・不平衡：震動停機，紅色箭頭指出偏重的方向
 ・卡關時按「提示」，再按一次會畫出其中一種擺法
+・實務模式：檢體管不能動，只能用有限的備用管配平，跟檢驗室裡的做法一樣
 
 【內容】
-・10 個關卡，從 6 孔到 30 孔，包含不能拿走的固定試管與不能使用的故障孔
+・「關卡」10 關，從 6 孔到 30 孔，包含不能拿走的固定試管與不能使用的故障孔
+・「實務」10 關，備用管支數就是題目，少一支就配不平
 ・自由模式：2 到 30 孔任選，自己出題
+・10 關全過頒發「醫檢師執照」，可寫上暱稱、分享成圖片；實務全過加蓋「實務合格」章
 ・記錄每一關的最佳成績，下次打開接著玩
+・繁體中文與英文介面，跟著系統語言
 ・震動回饋與過關動畫
 
 【背後的數學】
@@ -65,6 +69,49 @@
 
 功能有增減時，記得一起更新這份說明，再同步到 Play Console。
 
+
+## en-US 商店資訊
+
+### App name（30 字內）
+
+```
+Centrifuge Balance: Tube Puzzle
+```
+
+### Short description（80 字內）
+
+```
+Balance the centrifuge before you start it. 20 levels, a lab mode, maths inside.
+```
+
+### Full description（4000 字內）
+
+```
+Load the tubes so the rotor balances. Only then will it start.
+
+In a clinical lab the centrifuge must be balanced: load it unevenly and it shakes itself to a stop. This puzzle game turns that everyday chore into a set of levels. The rule fits in one sentence; the answers keep surprising you.
+
+HOW TO PLAY
+• Tap a hole to place or remove a tube, then press Start
+• Balanced: the rotor spins up to 4,000 rpm
+• Unbalanced: it shakes, stops, and a red arrow points at the heavy side
+• Stuck? Tap Hint for a clue, and again to see one layout drawn on the rotor
+• Lab mode: specimen tubes stay where they are; balance the rotor with a limited number of spare tubes, the way technologists do
+
+WHAT'S INSIDE
+• Levels: 10 puzzles from 6 to 30 holes, with fixed tubes you cannot move and broken holes you cannot use
+• Lab: 10 puzzles where the spare-tube budget is the puzzle; one tube fewer and it will not balance
+• Free mode: pick any rotor from 2 to 30 holes and set your own problems
+• Clear all 10 levels to earn the Medical Technologist Licence; add your name and share it as an image. Clear the lab levels for the Lab endorsement
+• Best score per level, and the game reopens exactly where you left it
+• Traditional Chinese and English, following your system language
+• Haptic feedback and a proper spin-up animation
+
+THE MATHS
+Think of each tube as a vector from the centre to its hole. Balanced means the vectors sum to zero. An n-hole rotor can balance k tubes exactly when both k and n−k can be written as sums of n's prime factors. A 12-hole rotor balances 5 tubes (5 = 2 + 3) but never 1 or 11.
+
+No account, no internet, no ads, no tracking. Progress is stored only on your device.
+```
 
 ## 1.1.0 更新說明（500 字內）
 
