@@ -123,7 +123,7 @@ WHAT'S INSIDE
 THE MATHS
 Think of each tube as a vector from the centre to its hole. Balanced means the vectors sum to zero. An n-hole rotor can balance k tubes exactly when both k and n−k can be written as sums of n's prime factors. A 12-hole rotor balances 5 tubes (5 = 2 + 3) but never 1 or 11.
 
-No account, no internet, no ads, no tracking. Progress is stored only on your device.
+Made by UNION CLINICAL LABORATORY (大安聯合醫事檢驗所), Taipei. No account, no internet, no ads, no tracking. Progress is stored only on your device.
 ```
 
 ## 1.1.0 更新說明（500 字內）
